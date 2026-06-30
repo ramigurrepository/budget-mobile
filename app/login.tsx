@@ -36,6 +36,16 @@ export default function LoginScreen() {
     setLoading(true)
     setError('')
     try {
+      if (Platform.OS === 'web') {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: { redirectTo: window.location.origin },
+        })
+        if (error) throw error
+        // browser will redirect to Google then back — no further handling needed
+        return
+      }
+
       const redirectUrl = makeRedirectUri({ scheme: 'budgetmobile', path: '/' })
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

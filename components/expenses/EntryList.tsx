@@ -96,10 +96,10 @@ export function EntryList({
             >
               <TouchableOpacity style={styles.entryMain} onPress={() => setEditEntry(entry)} activeOpacity={0.7}>
                 <View style={styles.topRow}>
-                  <Text style={styles.entryDate}>{formatDate(entry.date)}</Text>
                   <Text style={[styles.entryAmount, type === 'income' ? styles.incomeColor : styles.expenseColor]}>
                     {formatCurrency(entry.amount)}
                   </Text>
+                  <Text style={styles.entryDate}>{formatDate(entry.date)}</Text>
                 </View>
                 <View style={styles.bottomRow}>
                   <View style={styles.descRow}>
@@ -157,7 +157,7 @@ export function EntryList({
 const styles = StyleSheet.create({
   container: { gap: 12 },
   headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  headerText: { fontSize: 13, color: '#6b7280', textAlign: 'right' },
+  headerText: { fontSize: 13, color: '#6b7280', textAlign: 'left' },
   headerTotal: { fontWeight: '600', color: '#1a2e0d' },
   empty: { textAlign: 'center', color: '#9ca3af', paddingVertical: 24, fontSize: 14 },
   list: { gap: 8 },
@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
   expenseColor: { color: '#ef4444' },
   bottomRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   descRow: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1 },
-  descText: { fontSize: 14, fontWeight: '500', color: '#1a2e0d', flex: 1, textAlign: 'right' },
+  descText: { fontSize: 14, fontWeight: '500', color: '#1a2e0d', flex: 1, textAlign: 'left' },
   userName: { fontSize: 12, color: '#6b7280' },
   deleteBtn: {
     width: 32,

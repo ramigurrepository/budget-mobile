@@ -133,8 +133,18 @@ export function CategoryCard({
 
   return (
     <View style={[styles.card, expanded && styles.cardExpanded]}>
-      {/* Header row — actions first in JSX so they land on the START (right) side in RTL */}
       <TouchableOpacity style={styles.header} onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
+        <View style={styles.headerText}>
+          <Text style={styles.categoryName}>{category.name}</Text>
+          <Text style={[styles.amounts, isOver && styles.amountsOver]}>
+            {!loaded
+              ? budget > 0 ? `... / ${formatCurrency(budget)}` : '...'
+              : budget > 0
+              ? `${formatCurrency(actual)} / ${formatCurrency(budget)}`
+              : formatCurrency(actual)}
+          </Text>
+        </View>
+
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.addBtn}
@@ -146,17 +156,6 @@ export function CategoryCard({
           <View style={[styles.chevronWrap, expanded && styles.chevronExpanded]}>
             <ChevronDown size={16} color="#6b7280" />
           </View>
-        </View>
-
-        <View style={styles.headerText}>
-          <Text style={styles.categoryName}>{category.name}</Text>
-          <Text style={[styles.amounts, isOver && styles.amountsOver]}>
-            {!loaded
-              ? budget > 0 ? `... / ${formatCurrency(budget)}` : '...'
-              : budget > 0
-              ? `${formatCurrency(actual)} / ${formatCurrency(budget)}`
-              : formatCurrency(actual)}
-          </Text>
         </View>
       </TouchableOpacity>
 
@@ -283,9 +282,9 @@ const styles = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
-  headerText: { flex: 1, alignItems: 'flex-end' },
-  categoryName: { fontSize: 17, fontWeight: '600', color: '#1a2e0d', textAlign: 'right' },
-  amounts: { fontSize: 14, color: '#6b7280', textAlign: 'right', marginTop: 2 },
+  headerText: { flex: 1, alignItems: 'flex-start' },
+  categoryName: { fontSize: 17, fontWeight: '600', color: '#1a2e0d', textAlign: 'left' },
+  amounts: { fontSize: 14, color: '#6b7280', textAlign: 'left', marginTop: 2 },
   amountsOver: { color: '#ef4444' },
   actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   addBtn: {
@@ -313,11 +312,11 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressFill: { height: '100%', borderRadius: 3 },
-  overText: { fontSize: 12, color: '#ef4444', textAlign: 'right', marginTop: 3 },
+  overText: { fontSize: 12, color: '#ef4444', textAlign: 'left', marginTop: 3 },
   expandedContent: { borderTopWidth: 1, borderTopColor: '#E2E7D7', padding: 16 },
   budgetForm: { gap: 12 },
-  budgetSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'right' },
-  budgetLabel: { fontSize: 15, fontWeight: '500', color: '#374151', textAlign: 'right' },
+  budgetSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'left' },
+  budgetLabel: { fontSize: 15, fontWeight: '500', color: '#374151', textAlign: 'left' },
   budgetInput: {
     borderWidth: 1,
     borderColor: '#E2E7D7',
@@ -327,7 +326,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     color: '#1a2e0d',
   },
-  budgetHint: { fontSize: 12, color: '#9ca3af', textAlign: 'right' },
+  budgetHint: { fontSize: 12, color: '#9ca3af', textAlign: 'left' },
   budgetButtons: { flexDirection: 'row', gap: 12 },
   btn: { flex: 1 },
 })

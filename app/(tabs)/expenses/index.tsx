@@ -119,7 +119,7 @@ const styles = StyleSheet.create({
     top: -40,
     end: -30,
   },
-  heroLabel: { fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'right', marginBottom: 4 },
-  heroAmount: { fontSize: 32, fontWeight: '700', color: '#fff', textAlign: 'right' },
-  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'right', marginTop: 6 },
+  heroLabel: { fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'left', marginBottom: 4 },
+  heroAmount: { fontSize: 32, fontWeight: '700', color: '#fff', textAlign: 'left' },
+  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'left', marginTop: 6 },
 })

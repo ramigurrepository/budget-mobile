@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { View, Text, FlatList, SafeAreaView, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native'
+import { SafeAreaView } from 'react-native-safe-area-context'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/components/providers/AuthContext'
 import { useMonthContext } from '@/components/providers/MonthContext'
@@ -51,7 +52,7 @@ export default function ExpensesScreen() {
   if (!profile) return null
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={['top']}>
       <MonthSelector />
       {loading ? (
         <View style={styles.center}>

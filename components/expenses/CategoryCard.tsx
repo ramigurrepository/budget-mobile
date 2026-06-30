@@ -133,19 +133,8 @@ export function CategoryCard({
 
   return (
     <View style={[styles.card, expanded && styles.cardExpanded]}>
-      {/* Header row */}
+      {/* Header row — actions first in JSX so they land on the START (right) side in RTL */}
       <TouchableOpacity style={styles.header} onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
-        <View style={styles.headerText}>
-          <Text style={styles.categoryName}>{category.name}</Text>
-          <Text style={[styles.amounts, isOver && styles.amountsOver]}>
-            {!loaded
-              ? budget > 0 ? `... / ${formatCurrency(budget)}` : '...'
-              : budget > 0
-              ? `${formatCurrency(actual)} / ${formatCurrency(budget)}`
-              : formatCurrency(actual)}
-          </Text>
-        </View>
-
         <View style={styles.actions}>
           <TouchableOpacity
             style={styles.addBtn}
@@ -157,6 +146,17 @@ export function CategoryCard({
           <View style={[styles.chevronWrap, expanded && styles.chevronExpanded]}>
             <ChevronDown size={16} color="#6b7280" />
           </View>
+        </View>
+
+        <View style={styles.headerText}>
+          <Text style={styles.categoryName}>{category.name}</Text>
+          <Text style={[styles.amounts, isOver && styles.amountsOver]}>
+            {!loaded
+              ? budget > 0 ? `... / ${formatCurrency(budget)}` : '...'
+              : budget > 0
+              ? `${formatCurrency(actual)} / ${formatCurrency(budget)}`
+              : formatCurrency(actual)}
+          </Text>
         </View>
       </TouchableOpacity>
 

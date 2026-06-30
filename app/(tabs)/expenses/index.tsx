@@ -108,7 +108,6 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 16,
     overflow: 'hidden',
-    position: 'relative',
   },
   heroBubble: {
     position: 'absolute',
@@ -118,7 +117,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#B7F397',
     opacity: 0.2,
     top: -40,
-    left: -30,
+    end: -30,
   },
   heroLabel: { fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'right', marginBottom: 4 },
   heroAmount: { fontSize: 32, fontWeight: '700', color: '#fff', textAlign: 'right' },

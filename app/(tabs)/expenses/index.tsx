@@ -71,20 +71,24 @@ export default function ExpensesScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           ListHeaderComponent={
-            totalBudget > 0 ? (
-              <View style={[styles.heroCard, isOverBudget && styles.heroCardOver]}>
-                <View style={[styles.heroBubble, isOverBudget && styles.heroBubbleOver]} />
-                <Text style={styles.heroLabel}>הוצאות החודש</Text>
-                <Text style={styles.heroAmount}>{formatCurrency(totalActual)}</Text>
-                <Text style={styles.heroSub}>מתוך {formatCurrency(totalBudget)} תקציב</Text>
-                <View style={styles.progressBg}>
-                  <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
-                </View>
-                <Text style={[styles.heroSub, { marginTop: 6 }]}>
-                  {Object.keys(budgets).length} מתוך {categories.length} קטגוריות עם יעד
-                </Text>
-              </View>
-            ) : null
+            <View style={[styles.heroCard, isOverBudget && styles.heroCardOver]}>
+              <View style={[styles.heroBubble, isOverBudget && styles.heroBubbleOver]} />
+              <Text style={styles.heroLabel}>הוצאות החודש</Text>
+              <Text style={styles.heroAmount}>{formatCurrency(totalActual)}</Text>
+              {totalBudget > 0 ? (
+                <>
+                  <Text style={styles.heroSub}>מתוך {formatCurrency(totalBudget)} תקציב</Text>
+                  <View style={styles.progressBg}>
+                    <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
+                  </View>
+                  <Text style={[styles.heroSub, { marginTop: 6 }]}>
+                    {Object.keys(budgets).length} מתוך {categories.length} קטגוריות עם יעד
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.heroSub}>לא הוגדר תקציב</Text>
+              )}
+            </View>
           }
           renderItem={({ item }) => (
             <CategoryCard

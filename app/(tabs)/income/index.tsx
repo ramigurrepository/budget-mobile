@@ -66,17 +66,21 @@ export default function IncomeScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           ListHeaderComponent={
-            totalBudget > 0 ? (
-              <View style={styles.heroCard}>
-                <View style={styles.heroBubble} />
-                <Text style={styles.heroLabel}>הכנסות החודש</Text>
-                <Text style={styles.heroAmount}>{formatCurrency(totalActual)}</Text>
-                <Text style={styles.heroSub}>מתוך {formatCurrency(totalBudget)} יעד</Text>
-                <View style={styles.progressBg}>
-                  <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
-                </View>
-              </View>
-            ) : null
+            <View style={styles.heroCard}>
+              <View style={styles.heroBubble} />
+              <Text style={styles.heroLabel}>הכנסות החודש</Text>
+              <Text style={styles.heroAmount}>{formatCurrency(totalActual)}</Text>
+              {totalBudget > 0 ? (
+                <>
+                  <Text style={styles.heroSub}>מתוך {formatCurrency(totalBudget)} יעד</Text>
+                  <View style={styles.progressBg}>
+                    <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
+                  </View>
+                </>
+              ) : (
+                <Text style={styles.heroSub}>לא הוגדר יעד</Text>
+              )}
+            </View>
           }
           renderItem={({ item }) => (
             <CategoryCard

@@ -22,7 +22,7 @@ export function MonthSelector() {
     <View style={styles.container}>
       <View style={styles.pill}>
         <TouchableOpacity
-          onPress={handleNext}
+          onPress={handlePrev}
           style={styles.chevronBtn}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
@@ -36,7 +36,7 @@ export function MonthSelector() {
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={handlePrev}
+          onPress={handleNext}
           style={styles.chevronBtn}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >

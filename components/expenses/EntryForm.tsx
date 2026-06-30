@@ -212,7 +212,7 @@ export function EntryForm({
 const styles = StyleSheet.create({
   form: { gap: 16 },
   amountRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  label: { fontSize: 15, fontWeight: '500', color: '#374151', textAlign: 'right', marginBottom: 4 },
+  label: { fontSize: 15, fontWeight: '500', color: '#374151', textAlign: 'left', marginBottom: 4 },
   input: {
     borderWidth: 1,
     borderColor: '#d1d5db',

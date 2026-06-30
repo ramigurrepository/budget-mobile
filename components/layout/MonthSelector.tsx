@@ -26,7 +26,7 @@ export function MonthSelector() {
           style={styles.chevronBtn}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <ChevronLeft size={20} color="#386A20" />
+          <ChevronRight size={20} color="#386A20" />
         </TouchableOpacity>
 
         <TouchableOpacity onPress={() => setMonthYear(now.getMonth() + 1, now.getFullYear())}>
@@ -40,7 +40,7 @@ export function MonthSelector() {
           style={styles.chevronBtn}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <ChevronRight size={20} color="#386A20" />
+          <ChevronLeft size={20} color="#386A20" />
         </TouchableOpacity>
       </View>
     </View>

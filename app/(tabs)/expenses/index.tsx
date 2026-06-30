@@ -8,12 +8,14 @@ import { MonthSelector } from '@/components/layout/MonthSelector'
 import { CategoryCard } from '@/components/expenses/CategoryCard'
 import { Category, CategoryBudget, PaymentMethod, UserProfile } from '@/types'
 import { formatCurrency } from '@/lib/utils'
+import { getExpensesForMonth } from '@/lib/supabase/queries'
 
 export default function ExpensesScreen() {
   const { profile } = useAuth()
   const { month, year } = useMonthContext()
   const [categories, setCategories] = useState<Category[]>([])
   const [budgets, setBudgets] = useState<Record<string, number>>({})
+  const [totalActual, setTotalActual] = useState(0)
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [members, setMembers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
@@ -26,11 +28,12 @@ export default function ExpensesScreen() {
     setLoading(true)
     const hid = profile!.household_id
 
-    const [{ data: cats }, { data: pms }, { data: mems }, { data: bgets }] = await Promise.all([
+    const [{ data: cats }, { data: pms }, { data: mems }, { data: bgets }, expenses] = await Promise.all([
       supabase.from('categories').select('*').eq('household_id', hid).eq('type', 'expense').order('sort_order'),
       supabase.from('payment_methods').select('*').eq('household_id', hid).order('sort_order'),
       supabase.from('user_profiles').select('*').eq('household_id', hid),
       supabase.from('category_budgets').select('*').eq('year', year).eq('month', month),
+      getExpensesForMonth(supabase, hid, month, year),
     ])
 
     setCategories(cats ?? [])
@@ -40,6 +43,8 @@ export default function ExpensesScreen() {
     const budgetMap: Record<string, number> = {}
     ;(bgets ?? []).forEach((b: CategoryBudget) => { budgetMap[b.category_id] = b.amount })
     setBudgets(budgetMap)
+
+    setTotalActual(expenses.reduce((s, e) => s + e.amount, 0))
     setLoading(false)
   }
 
@@ -48,6 +53,8 @@ export default function ExpensesScreen() {
   }
 
   const totalBudget = Object.values(budgets).reduce((s, v) => s + v, 0)
+  const isOverBudget = totalBudget > 0 && totalActual > totalBudget
+  const pct = totalBudget > 0 ? Math.min((totalActual / totalBudget) * 100, 100) : 0
 
   if (!profile) return null
 
@@ -65,11 +72,15 @@ export default function ExpensesScreen() {
           contentContainerStyle={styles.list}
           ListHeaderComponent={
             totalBudget > 0 ? (
-              <View style={styles.heroCard}>
-                <View style={styles.heroBubble} />
-                <Text style={styles.heroLabel}>תקציב חודשי כולל</Text>
-                <Text style={styles.heroAmount}>{formatCurrency(totalBudget)}</Text>
-                <Text style={styles.heroSub}>
+              <View style={[styles.heroCard, isOverBudget && styles.heroCardOver]}>
+                <View style={[styles.heroBubble, isOverBudget && styles.heroBubbleOver]} />
+                <Text style={styles.heroLabel}>הוצאות החודש</Text>
+                <Text style={styles.heroAmount}>{formatCurrency(totalActual)}</Text>
+                <Text style={styles.heroSub}>מתוך {formatCurrency(totalBudget)} תקציב</Text>
+                <View style={styles.progressBg}>
+                  <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
+                </View>
+                <Text style={[styles.heroSub, { marginTop: 6 }]}>
                   {Object.keys(budgets).length} מתוך {categories.length} קטגוריות עם יעד
                 </Text>
               </View>
@@ -110,6 +121,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     overflow: 'hidden',
   },
+  heroCardOver: { backgroundColor: '#991b1b' },
   heroBubble: {
     position: 'absolute',
     width: 140,
@@ -120,7 +132,10 @@ const styles = StyleSheet.create({
     top: -40,
     end: -30,
   },
+  heroBubbleOver: { backgroundColor: '#fca5a5' },
   heroLabel: { fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'left', marginBottom: 4 },
   heroAmount: { fontSize: 32, fontWeight: '700', color: '#fff', textAlign: 'left' },
-  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'left', marginTop: 6 },
+  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'left', marginTop: 2 },
+  progressBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 3, marginTop: 10 },
+  progressFill: { height: 6, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 3 },
 })

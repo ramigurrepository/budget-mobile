@@ -2,11 +2,10 @@ import { useEffect, useState } from 'react'
 import {
   View,
   Text,
-  FlatList,
+  ScrollView,
   TouchableOpacity,
   TextInput,
   StyleSheet,
-  ScrollView,
   ActivityIndicator,
 } from 'react-native'
 import { Plus, Pencil, Trash2, ChevronUp, ChevronDown } from 'lucide-react-native'
@@ -33,6 +32,10 @@ export function CategoriesSettings() {
   const [formType, setFormType] = useState<'expense' | 'income'>('expense')
   const [formReportType, setFormReportType] = useState<'monthly' | 'tracking'>('monthly')
   const [saving, setSaving] = useState(false)
+
+  const expenseCategories = categories.filter(c => c.type === 'expense' && c.report_type === 'monthly')
+  const incomeCategories = categories.filter(c => c.type === 'income' && c.report_type === 'monthly')
+  const trackingCategories = categories.filter(c => c.report_type === 'tracking')
 
   useEffect(() => {
     if (profile?.household_id) loadCategories()
@@ -98,30 +101,76 @@ export function CategoriesSettings() {
     else { toast({ title: 'נמחק', variant: 'success' }); loadCategories() }
   }
 
-  async function moveUp(index: number) {
-    if (index === 0) return
-    const arr = [...categories]
-    const temp = arr[index]
-    arr[index] = arr[index - 1]
-    arr[index - 1] = temp
-    setCategories(arr)
+  async function moveInGroup(group: Category[], indexInGroup: number, direction: 'up' | 'down') {
+    const otherIndex = direction === 'up' ? indexInGroup - 1 : indexInGroup + 1
+    if (otherIndex < 0 || otherIndex >= group.length) return
+
+    const itemA = group[indexInGroup]
+    const itemB = group[otherIndex]
+    const orderA = itemA.sort_order ?? 0
+    const orderB = itemB.sort_order ?? 0
+
+    setCategories(prev => {
+      const arr = [...prev]
+      const idxA = arr.findIndex(c => c.id === itemA.id)
+      const idxB = arr.findIndex(c => c.id === itemB.id)
+      if (idxA === -1 || idxB === -1) return prev
+      ;[arr[idxA], arr[idxB]] = [arr[idxB], arr[idxA]]
+      return arr
+    })
+
     await Promise.all([
-      supabase.from('categories').update({ sort_order: index - 1 }).eq('id', arr[index - 1].id),
-      supabase.from('categories').update({ sort_order: index }).eq('id', arr[index].id),
+      supabase.from('categories').update({ sort_order: orderB }).eq('id', itemA.id),
+      supabase.from('categories').update({ sort_order: orderA }).eq('id', itemB.id),
     ])
   }
 
-  async function moveDown(index: number) {
-    if (index === categories.length - 1) return
-    const arr = [...categories]
-    const temp = arr[index]
-    arr[index] = arr[index + 1]
-    arr[index + 1] = temp
-    setCategories(arr)
-    await Promise.all([
-      supabase.from('categories').update({ sort_order: index }).eq('id', arr[index].id),
-      supabase.from('categories').update({ sort_order: index + 1 }).eq('id', arr[index + 1].id),
-    ])
+  function renderSection(label: string, group: Category[], showType?: boolean) {
+    return (
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionLabel}>{label}</Text>
+        </View>
+        {group.length === 0 ? (
+          <Text style={styles.emptyText}>אין קטגוריות</Text>
+        ) : (
+          group.map((item, index) => (
+            <View key={item.id} style={styles.row}>
+              <View style={styles.arrows}>
+                <TouchableOpacity
+                  onPress={() => moveInGroup(group, index, 'up')}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                >
+                  <ChevronUp size={18} color={index === 0 ? '#d1d5db' : '#6b7280'} />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => moveInGroup(group, index, 'down')}
+                  hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                >
+                  <ChevronDown size={18} color={index === group.length - 1 ? '#d1d5db' : '#6b7280'} />
+                </TouchableOpacity>
+              </View>
+
+              <View style={styles.rowInfo}>
+                <Text style={styles.rowName}>{item.name}</Text>
+                {showType && (
+                  <Text style={styles.rowMeta}>{item.type === 'expense' ? 'הוצאה' : 'הכנסה'}</Text>
+                )}
+              </View>
+
+              <View style={styles.rowActions}>
+                <TouchableOpacity onPress={() => openEdit(item)} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
+                  <Pencil size={16} color="#6b7280" />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setDeleteItem(item)} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
+                  <Trash2 size={16} color="#f87171" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))
+        )}
+      </View>
+    )
   }
 
   const typeOptions = [
@@ -164,7 +213,7 @@ export function CategoriesSettings() {
   return (
     <View style={styles.container}>
       <View style={styles.topBar}>
-        <Text style={styles.sectionTitle}>קטגוריות</Text>
+        <Text style={styles.title}>קטגוריות</Text>
         <Button size="sm" onPress={openAdd}>
           <Plus size={14} color="#fff" />
           {'  '}הוסף קטגוריה
@@ -174,39 +223,11 @@ export function CategoriesSettings() {
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} />
       ) : (
-        <FlatList
-          data={categories}
-          keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.list}
-          renderItem={({ item, index }) => (
-            <View style={styles.row}>
-              <View style={styles.arrows}>
-                <TouchableOpacity onPress={() => moveUp(index)} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
-                  <ChevronUp size={18} color={index === 0 ? '#d1d5db' : '#6b7280'} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => moveDown(index)} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
-                  <ChevronDown size={18} color={index === categories.length - 1 ? '#d1d5db' : '#6b7280'} />
-                </TouchableOpacity>
-              </View>
-
-              <View style={styles.rowInfo}>
-                <Text style={styles.rowName}>{item.name}</Text>
-                <Text style={styles.rowMeta}>
-                  {item.type === 'expense' ? 'הוצאה' : 'הכנסה'} · {item.report_type === 'monthly' ? 'חודשי' : 'מעקב'}
-                </Text>
-              </View>
-
-              <View style={styles.rowActions}>
-                <TouchableOpacity onPress={() => openEdit(item)} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
-                  <Pencil size={16} color="#6b7280" />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setDeleteItem(item)} hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}>
-                  <Trash2 size={16} color="#f87171" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
-        />
+        <ScrollView contentContainerStyle={styles.list}>
+          {renderSection('הוצאות', expenseCategories)}
+          {renderSection('הכנסות', incomeCategories)}
+          {renderSection('מעקב', trackingCategories, true)}
+        </ScrollView>
       )}
 
       <Modal visible={addOpen} onClose={() => setAddOpen(false)} title="הוסף קטגוריה">
@@ -239,8 +260,22 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
-  sectionTitle: { fontSize: 16, fontWeight: '600', color: '#111827' },
-  list: { padding: 16, gap: 8 },
+  title: { fontSize: 16, fontWeight: '600', color: '#111827' },
+  list: { padding: 16, gap: 20 },
+  section: { gap: 8 },
+  sectionHeader: {
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    marginBottom: 4,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#386A20',
+    textAlign: 'right',
+  },
+  emptyText: { fontSize: 14, color: '#9ca3af', textAlign: 'right', paddingVertical: 8 },
   row: {
     flexDirection: 'row',
     alignItems: 'center',

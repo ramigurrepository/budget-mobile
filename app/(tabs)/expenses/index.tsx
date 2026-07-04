@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { View, Text, FlatList, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, FlatList, ActivityIndicator, StyleSheet, TextInput, TouchableOpacity } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { Search, X } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/components/providers/AuthContext'
 import { useMonthContext } from '@/components/providers/MonthContext'
@@ -19,6 +20,7 @@ export default function ExpensesScreen() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([])
   const [members, setMembers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
+  const [searchQuery, setSearchQuery] = useState('')
 
   useEffect(() => {
     if (profile?.household_id) loadData()
@@ -52,6 +54,10 @@ export default function ExpensesScreen() {
     setBudgets((prev) => ({ ...prev, [categoryId]: amount }))
   }
 
+  const filteredCategories = searchQuery.trim()
+    ? categories.filter((c) => c.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
+    : categories
+
   const totalBudget = Object.values(budgets).reduce((s, v) => s + v, 0)
   const isOverBudget = totalBudget > 0 && totalActual > totalBudget
   const pct = totalBudget > 0 ? Math.min((totalActual / totalBudget) * 100, 100) : 0
@@ -67,28 +73,50 @@ export default function ExpensesScreen() {
         </View>
       ) : (
         <FlatList
-          data={categories}
+          data={filteredCategories}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          keyboardShouldPersistTaps="handled"
           ListHeaderComponent={
-            <View style={[styles.heroCard, isOverBudget && styles.heroCardOver]}>
-              <View style={[styles.heroBubble, isOverBudget && styles.heroBubbleOver]} />
-              <Text style={styles.heroLabel}>הוצאות החודש</Text>
-              <Text style={styles.heroAmount}>{formatCurrency(totalActual)}</Text>
-              {totalBudget > 0 ? (
-                <>
-                  <Text style={styles.heroSub}>מתוך {formatCurrency(totalBudget)} תקציב</Text>
-                  <View style={styles.progressBg}>
-                    <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
-                  </View>
-                  <Text style={[styles.heroSub, { marginTop: 6 }]}>
-                    {Object.keys(budgets).length} מתוך {categories.length} קטגוריות עם יעד
-                  </Text>
-                </>
-              ) : (
-                <Text style={styles.heroSub}>לא הוגדר תקציב</Text>
+            <>
+              {!searchQuery.trim() && (
+                <View style={[styles.heroCard, isOverBudget && styles.heroCardOver]}>
+                  <View style={[styles.heroBubble, isOverBudget && styles.heroBubbleOver]} />
+                  <Text style={styles.heroLabel}>הוצאות החודש</Text>
+                  <Text style={styles.heroAmount}>{formatCurrency(totalActual)}</Text>
+                  {totalBudget > 0 ? (
+                    <>
+                      <Text style={styles.heroSub}>מתוך {formatCurrency(totalBudget)} תקציב</Text>
+                      <View style={styles.progressBg}>
+                        <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
+                      </View>
+                      <Text style={[styles.heroSub, { marginTop: 6 }]}>
+                        {Object.keys(budgets).length} מתוך {categories.length} קטגוריות עם יעד
+                      </Text>
+                    </>
+                  ) : (
+                    <Text style={styles.heroSub}>לא הוגדר תקציב</Text>
+                  )}
+                </View>
               )}
-            </View>
+              <View style={styles.searchRow}>
+                <Search size={16} color="#6b7280" />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="חפש קטגוריה..."
+                  placeholderTextColor="#9ca3af"
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  textAlign="right"
+                  returnKeyType="search"
+                />
+                {searchQuery.length > 0 && (
+                  <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={8}>
+                    <X size={16} color="#6b7280" />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </>
           }
           renderItem={({ item }) => (
             <CategoryCard
@@ -105,7 +133,11 @@ export default function ExpensesScreen() {
               onBudgetChange={handleBudgetChange}
             />
           )}
-          ListEmptyComponent={<Text style={styles.empty}>אין קטגוריות</Text>}
+          ListEmptyComponent={
+            <Text style={styles.empty}>
+              {searchQuery.trim() ? `אין קטגוריות התואמות "${searchQuery}"` : 'אין קטגוריות'}
+            </Text>
+          }
           ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         />
       )}
@@ -142,4 +174,24 @@ const styles = StyleSheet.create({
   heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'left', marginTop: 2 },
   progressBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 3, marginTop: 10 },
   progressFill: { height: 6, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 3 },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    gap: 8,
+  },
+  searchIcon: { flexShrink: 0 },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#1f2937',
+    paddingVertical: 0,
+    fontFamily: 'Heebo_400Regular',
+  },
 })

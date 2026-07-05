@@ -25,6 +25,29 @@ jobs:
         run: npm ci
 
       - name: Publish OTA update
-        run: eas update --branch production --environment production --message "${{ github.event.head_commit.message }}"
+        id: ota
+        run: |
+          OUTPUT=$(eas update --branch production --environment production --message "${{ github.event.head_commit.message }}" --json --non-interactive 2>&1)
+          echo "$OUTPUT"
+          GROUP_ID=$(echo "$OUTPUT" | grep -o '"group":"[^"]*"' | head -1 | cut -d'"' -f4)
+          echo "group_id=$GROUP_ID" >> $GITHUB_OUTPUT
+        env:
+          CI: 1
+
+      - name: Verify OTA on production branch
+        run: |
+          GROUP_ID="${{ steps.ota.outputs.group_id }}"
+          echo "Verifying update group: $GROUP_ID"
+          RESULT=$(eas update:list --branch production --limit 1 --json --non-interactive 2>/dev/null)
+          LATEST=$(echo "$RESULT" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+          echo "Latest on production: $LATEST"
+          if [ -z "$GROUP_ID" ] || [ -z "$LATEST" ]; then
+            echo "::warning::Could not verify update group ID (JSON parsing issue)"
+          elif echo "$LATEST" | grep -q "$GROUP_ID"; then
+            echo "✅ Update $GROUP_ID confirmed on production branch"
+          else
+            echo "::error::Update $GROUP_ID NOT found as latest on production! Latest is: $LATEST"
+            exit 1
+          fi
         env:
           CI: 1

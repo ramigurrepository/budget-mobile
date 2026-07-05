@@ -31,27 +31,52 @@ For day-to-day JS changes, `git push origin master` is all that's needed. No man
 
 ### EAS OTA Updates
 
-```bash
-# Manual OTA (when bypassing GitHub Actions)
-CI=1 npx eas-cli update --channel production --message "description" --environment production
+```powershell
+# Manual OTA on PowerShell (when bypassing GitHub Actions)
+$env:CI = "1"; npx eas-cli update --channel production --message "description" --environment production
 ```
 
 - **Account**: `ramigur`, **Project**: `budget-mobile`, **EAS Project ID**: `8a224645-99a8-4e1c-8e2b-8499abfc39a8`
 - **Runtime version policy**: `appVersion` — OTA updates only reach devices running the same `version` as in `app.json`. Bumping the version means old installs stop receiving OTA until they reinstall.
-- `--non-interactive` requires `--environment`; use `CI=1` instead.
+- `--non-interactive` requires `--environment`; use `$env:CI = "1"` on PowerShell instead.
 - The `preview` build profile in `eas.json` has `channel: "production"` — this is what wires installed apps to OTA. Builds showing "None" for Channel in the EAS dashboard are **not** connected to OTA and will never auto-update.
+- **GitHub Actions** runs OTA automatically on every push to master — requires `EXPO_TOKEN` secret set at `https://github.com/ramigurrepository/budget-mobile/settings/secrets/actions`.
+
+#### After every OTA push — mandatory verification
+
+After pushing an OTA (manually or via GitHub Actions), always verify and report to the user:
+
+```powershell
+npx eas-cli update:list --branch production --limit 1
+```
+
+Confirm the latest entry matches the just-published Group ID. Then report to the user with:
+- ✅ OTA confirmed on production (Group ID: `...`)
+- 🌐 Web: `https://budget-mobile-rosy.vercel.app`
+- 📱 Latest APK: `https://expo.dev/accounts/ramigur/projects/budget-mobile/builds` → latest preview build
 
 ### Native Builds (APK)
 
-Only needed when native dependencies or `app.json` native config change, or when setting up a **new device** for the first time (a device that has never installed the app cannot receive OTA — it needs the APK first).
+Needed when:
+- A new device is set up for the first time (OTA cannot reach a device that never had the APK)
+- The project **fingerprint** changes — this happens when native packages in `node_modules` change, even without explicit native code edits
 
-```bash
-npx eas-cli build --profile preview --platform android
+**How to detect a fingerprint mismatch:** OTA is published successfully but the device never receives it. Check with:
+```powershell
+npx expo-updates fingerprint:generate --platform android
 ```
+Compare the output hash to the installed APK's fingerprint shown in `eas build:list`. If they differ, a new APK build is required.
+
+```powershell
+npx eas-cli build --profile preview --platform android --non-interactive
+```
+
+The build runs on EAS servers (~22 min). The local CLI may time out — that is normal. Check completion at:
+`https://expo.dev/accounts/ramigur/projects/budget-mobile/builds`
 
 **Installing on a device** — the APK is internal distribution, not on the Play Store:
 1. Go to `https://expo.dev/accounts/ramigur/projects/budget-mobile/builds`
-2. Click the latest **preview** build → **Install** → scan the QR code with the phone camera (not Expo Go)
+2. Click the latest **preview** build with `Channel: production` → **Install** → scan the QR code with the phone camera (not Expo Go)
 3. Tap the notification → follow the Android install prompt
 
 Once the preview APK is installed, all future JS-only changes arrive via OTA automatically. There is also an older separate app called `budget-app` on some devices — it is a different codebase and does not receive updates from this project.

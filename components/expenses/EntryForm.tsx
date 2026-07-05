@@ -155,10 +155,10 @@ export function EntryForm({
       />
 
       {/* Date */}
-      <View>
-        <Text style={styles.label}>תאריך</Text>
+      <View style={styles.inlineRow}>
+        <Text style={styles.inlineLabel}>תאריך</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, styles.inlineInput]}
           value={date}
           onChangeText={setDate}
           placeholder="YYYY-MM-DD"
@@ -177,14 +177,16 @@ export function EntryForm({
       />
 
       {/* Payment Method */}
-      <View>
-        <Text style={styles.label}>אמצעי תשלום</Text>
-        <Select
-          value={paymentMethodId}
-          onValueChange={setPaymentMethodId}
-          options={pmOptions}
-          placeholder="בחר אמצעי תשלום"
-        />
+      <View style={styles.inlineRow}>
+        <Text style={styles.inlineLabel}>א.תשלום</Text>
+        <View style={styles.inlineSelect}>
+          <Select
+            value={paymentMethodId}
+            onValueChange={setPaymentMethodId}
+            options={pmOptions}
+            placeholder="בחר אמצעי תשלום"
+          />
+        </View>
       </View>
 
       {/* Recurring */}
@@ -225,6 +227,10 @@ const styles = StyleSheet.create({
     minHeight: 44,
   },
   amountInput: { width: 140 },
+  inlineRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
+  inlineLabel: { fontSize: 15, fontWeight: '500', color: '#374151' },
+  inlineInput: { flex: 1 },
+  inlineSelect: { flex: 1 },
   recurringRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   buttons: { flexDirection: 'row', gap: 12, marginTop: 4 },
   btn: { flex: 1 },

@@ -1,5 +1,5 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { ChevronLeft, ChevronRight } from 'lucide-react-native'
+import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react-native'
 import { useMonthContext } from '@/components/providers/MonthContext'
 import { getMonthName, prevMonth, nextMonth } from '@/lib/utils'
 
@@ -32,6 +32,7 @@ export function MonthSelector() {
         onPress={() => setMonthYear(now.getMonth() + 1, now.getFullYear())}
       >
         <Text style={styles.label}>{getMonthName(month)} {year}</Text>
+        <CalendarDays size={16} color="#386A20" />
       </TouchableOpacity>
 
       <TouchableOpacity

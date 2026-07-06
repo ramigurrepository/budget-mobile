@@ -30,9 +30,9 @@ export function MonthSelector() {
 
   return (
     <View style={styles.container}>
-      {/* First in code = RIGHT visually in RTL = next month, points → outward */}
+      {/* First in code = RIGHT visually in RTL = prev month (RTL: right = earlier in time) */}
       <TouchableOpacity
-        onPress={handleNext}
+        onPress={handlePrev}
         style={styles.arrowBtn}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
@@ -48,9 +48,9 @@ export function MonthSelector() {
         <CalendarDays size={16} color="#386A20" />
       </TouchableOpacity>
 
-      {/* Last in code = LEFT visually in RTL = prev month, points ← outward */}
+      {/* Last in code = LEFT visually in RTL = next month (RTL: left = later in time) */}
       <TouchableOpacity
-        onPress={handlePrev}
+        onPress={handleNext}
         style={styles.arrowBtn}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >

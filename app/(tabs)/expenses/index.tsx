@@ -42,11 +42,8 @@ export default function ExpensesScreen() {
     setPaymentMethods(pms ?? [])
     setMembers(mems ?? [])
 
-    const expenseCatIds = new Set((cats ?? []).map((c) => c.id))
     const budgetMap: Record<string, number> = {}
-    ;(bgets ?? []).forEach((b: CategoryBudget) => {
-      if (expenseCatIds.has(b.category_id)) budgetMap[b.category_id] = b.amount
-    })
+    ;(bgets ?? []).forEach((b: CategoryBudget) => { budgetMap[b.category_id] = b.amount })
     setBudgets(budgetMap)
 
     setTotalActual(expenses.reduce((s, e) => s + e.amount, 0))

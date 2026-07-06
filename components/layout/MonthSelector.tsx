@@ -1,12 +1,11 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
-import { ChevronLeft, ChevronRight } from 'lucide-react-native'
+import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react-native'
 import { useMonthContext } from '@/components/providers/MonthContext'
 import { getMonthName, prevMonth, nextMonth } from '@/lib/utils'
 
 export function MonthSelector() {
   const { month, year, setMonthYear } = useMonthContext()
   const now = new Date()
-  const isCurrentMonth = month === now.getMonth() + 1 && year === now.getFullYear()
 
   function handlePrev() {
     const p = prevMonth(month, year)
@@ -20,61 +19,61 @@ export function MonthSelector() {
 
   return (
     <View style={styles.container}>
-      <View style={styles.pill}>
-        <TouchableOpacity
-          onPress={handlePrev}
-          style={styles.chevronBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <ChevronRight size={20} color="#386A20" />
-        </TouchableOpacity>
+      <TouchableOpacity
+        onPress={handlePrev}
+        style={styles.arrowBtn}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <ChevronLeft size={22} color="#386A20" />
+      </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => setMonthYear(now.getMonth() + 1, now.getFullYear())}>
-          <Text style={[styles.label, isCurrentMonth && styles.labelCurrent]}>
-            {getMonthName(month)} {isCurrentMonth ? '✓' : year}
-          </Text>
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.pill}
+        onPress={() => setMonthYear(now.getMonth() + 1, now.getFullYear())}
+      >
+        <Calendar size={15} color="#386A20" />
+        <Text style={styles.label}>{getMonthName(month)} {year}</Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={handleNext}
-          style={styles.chevronBtn}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <ChevronLeft size={20} color="#386A20" />
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity
+        onPress={handleNext}
+        style={styles.arrowBtn}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <ChevronRight size={22} color="#386A20" />
+      </TouchableOpacity>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 10,
     backgroundColor: '#F7FBEF',
+    gap: 8,
+  },
+  arrowBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#EEF1E4',
     borderRadius: 999,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    gap: 4,
-  },
-  chevronBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
   },
   label: {
     fontSize: 16,
     fontWeight: '600',
     color: '#1a2e0d',
-    minWidth: 120,
-    textAlign: 'center',
   },
-  labelCurrent: { color: '#386A20' },
 })

@@ -82,17 +82,31 @@ export default function ExpensesScreen() {
               {!searchQuery.trim() && (
                 <View style={[styles.heroCard, isOverBudget && styles.heroCardOver]}>
                   <View style={[styles.heroBubble, isOverBudget && styles.heroBubbleOver]} />
-                  <Text style={styles.heroLabel}>הוצאות החודש</Text>
-                  <Text style={styles.heroAmount}>{formatCurrency(totalActual)}</Text>
+
+                  <View style={styles.heroTopRow}>
+                    <View>
+                      <Text style={styles.heroColLabel}>ביצוע</Text>
+                      <Text style={styles.heroActualAmount}>{formatCurrency(totalActual)}</Text>
+                    </View>
+                    {totalBudget > 0 && (
+                      <View style={styles.heroBudgetCol}>
+                        <Text style={styles.heroColLabelEnd}>תקציב</Text>
+                        <Text style={styles.heroBudgetAmount}>{formatCurrency(totalBudget)}</Text>
+                      </View>
+                    )}
+                  </View>
+
                   {totalBudget > 0 ? (
                     <>
-                      <Text style={styles.heroSub}>מתוך {formatCurrency(totalBudget)} תקציב</Text>
                       <View style={styles.progressBg}>
                         <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
                       </View>
-                      <Text style={[styles.heroSub, { marginTop: 6 }]}>
-                        {Object.keys(budgets).length} מתוך {categories.length} קטגוריות עם יעד
-                      </Text>
+                      <View style={styles.heroBottomRow}>
+                        <Text style={styles.heroBalance}>
+                          נותרה יתרה של {formatCurrency(totalBudget - totalActual)}
+                        </Text>
+                        <Text style={styles.heroPct}>{Math.round(pct)}% נוצלו</Text>
+                      </View>
                     </>
                   ) : (
                     <Text style={styles.heroSub}>לא הוגדר תקציב</Text>
@@ -160,20 +174,32 @@ const styles = StyleSheet.create({
   heroCardOver: { backgroundColor: '#991b1b' },
   heroBubble: {
     position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
     backgroundColor: '#B7F397',
-    opacity: 0.2,
-    top: -40,
-    end: -30,
+    opacity: 0.18,
+    top: -50,
+    end: -40,
   },
   heroBubbleOver: { backgroundColor: '#fca5a5' },
-  heroLabel: { fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'left', marginBottom: 4 },
-  heroAmount: { fontSize: 32, fontWeight: '700', color: '#fff', textAlign: 'left' },
-  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'left', marginTop: 2 },
-  progressBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 3, marginTop: 10 },
-  progressFill: { height: 6, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 3 },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 0,
+  },
+  heroColLabel: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 4 },
+  heroColLabelEnd: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 4, textAlign: 'left' },
+  heroActualAmount: { fontSize: 34, fontWeight: '700', color: '#fff' },
+  heroBudgetCol: { alignItems: 'flex-end' },
+  heroBudgetAmount: { fontSize: 18, fontWeight: '600', color: 'rgba(255,255,255,0.9)', textAlign: 'left' },
+  progressBg: { height: 8, backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 4, marginTop: 16, marginBottom: 0 },
+  progressFill: { height: 8, backgroundColor: 'rgba(255,255,255,0.75)', borderRadius: 4 },
+  heroBottomRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  heroBalance: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
+  heroPct: { fontSize: 12, color: 'rgba(255,255,255,0.8)', textAlign: 'left' },
+  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 8 },
   searchRow: {
     flexDirection: 'row',
     alignItems: 'center',

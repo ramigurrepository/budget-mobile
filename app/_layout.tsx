@@ -1,7 +1,6 @@
 import '../global.css'
 import { useEffect } from 'react'
-import { I18nManager, Alert } from 'react-native'
-import * as Updates from 'expo-updates'
+import { I18nManager } from 'react-native'
 import { Stack, useRouter, useSegments } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
 import {
@@ -54,26 +53,6 @@ export default function RootLayout() {
   useEffect(() => {
     if (fontsLoaded) SplashScreen.hideAsync()
   }, [fontsLoaded])
-
-  useEffect(() => {
-    async function checkForUpdate() {
-      if (!Updates.isEnabled) {
-        if (__DEV__) return
-        Alert.alert('OTA', 'Updates.isEnabled = false')
-        return
-      }
-      try {
-        const result = await Updates.checkForUpdateAsync()
-        if (result.isAvailable) {
-          await Updates.fetchUpdateAsync()
-          await Updates.reloadAsync()
-        }
-      } catch (e: any) {
-        if (!__DEV__) Alert.alert('OTA Error', String(e?.message ?? e))
-      }
-    }
-    checkForUpdate()
-  }, [])
 
   if (!fontsLoaded) return null
 

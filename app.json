@@ -8,7 +8,9 @@
     "scheme": "budgetmobile",
     "userInterfaceStyle": "automatic",
     "updates": {
-      "url": "https://u.expo.dev/8a224645-99a8-4e1c-8e2b-8499abfc39a8"
+      "url": "https://u.expo.dev/8a224645-99a8-4e1c-8e2b-8499abfc39a8",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0
     },
     "runtimeVersion": {
       "policy": "appVersion"

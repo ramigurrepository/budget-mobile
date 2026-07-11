@@ -46,7 +46,7 @@ export default function LoginScreen() {
         return
       }
 
-      const redirectUrl = makeRedirectUri({ scheme: 'budgetmobile', path: '/' })
+      const redirectUrl = makeRedirectUri({ scheme: 'budgetmobile' })
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo: redirectUrl, skipBrowserRedirect: true },

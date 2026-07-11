@@ -42,7 +42,7 @@ export type Expense = {
   payment_method_id: string | null
   entered_by_user_id: string
   attributed_to_user_id: string
-  description: string
+  description: string | null
   amount: number
   note?: string | null
   date: string
@@ -64,7 +64,7 @@ export type Income = {
   payment_method_id: string | null
   entered_by_user_id: string
   attributed_to_user_id: string
-  description: string
+  description: string | null
   amount: number
   note?: string | null
   date: string

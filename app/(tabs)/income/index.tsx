@@ -48,7 +48,7 @@ export default function IncomeScreen() {
     setLoading(false)
   }
 
-  const totalBudget = Object.values(budgets).reduce((s, v) => s + v, 0)
+  const totalBudget = categories.reduce((s, cat) => s + (budgets[cat.id] ?? 0), 0)
   const pct = totalBudget > 0 ? Math.min((totalActual / totalBudget) * 100, 100) : 0
 
   if (!profile) return null
@@ -68,13 +68,32 @@ export default function IncomeScreen() {
           ListHeaderComponent={
             <View style={styles.heroCard}>
               <View style={styles.heroBubble} />
-              <Text style={styles.heroLabel}>הכנסות החודש</Text>
-              <Text style={styles.heroAmount}>{formatCurrency(totalActual)}</Text>
+
+              <View style={styles.heroTopRow}>
+                <View>
+                  <Text style={styles.heroColLabel}>ביצוע</Text>
+                  <Text style={styles.heroActualAmount}>{formatCurrency(totalActual)}</Text>
+                </View>
+                {totalBudget > 0 && (
+                  <View style={styles.heroBudgetCol}>
+                    <Text style={styles.heroColLabelEnd}>יעד</Text>
+                    <Text style={styles.heroBudgetAmount}>{formatCurrency(totalBudget)}</Text>
+                  </View>
+                )}
+              </View>
+
               {totalBudget > 0 ? (
                 <>
-                  <Text style={styles.heroSub}>מתוך {formatCurrency(totalBudget)} יעד</Text>
                   <View style={styles.progressBg}>
                     <View style={[styles.progressFill, { width: `${pct}%` as any }]} />
+                  </View>
+                  <View style={styles.heroBottomRow}>
+                    <Text style={styles.heroBalance}>
+                      {totalActual > totalBudget
+                        ? `יש הכנסה עודפת של ${formatCurrency(totalActual - totalBudget)}`
+                        : `יש חוסר בהכנסות בסך ${formatCurrency(totalBudget - totalActual)}`}
+                    </Text>
+                    <Text style={styles.heroPct}>{Math.round(pct)}% הושגו</Text>
                   </View>
                 </>
               ) : (
@@ -94,6 +113,9 @@ export default function IncomeScreen() {
               currentUserId={profile.id}
               viewMonth={month}
               viewYear={year}
+              onBudgetChange={(categoryId, newBudget) =>
+                setBudgets((prev) => ({ ...prev, [categoryId]: newBudget }))
+              }
             />
           )}
           ListEmptyComponent={<Text style={styles.empty}>אין קטגוריות</Text>}
@@ -107,28 +129,40 @@ export default function IncomeScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F7FBEF' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list: { padding: 16 },
+  list: { padding: 16, gap: 0 },
   empty: { textAlign: 'center', color: '#9ca3af', marginTop: 40, fontSize: 16 },
   heroCard: {
     borderRadius: 24,
-    backgroundColor: '#2e8b57',
+    backgroundColor: '#386A20',
     padding: 20,
     marginBottom: 16,
     overflow: 'hidden',
   },
   heroBubble: {
     position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: '#7fffd4',
-    opacity: 0.2,
-    top: -40,
-    end: -30,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: '#B7F397',
+    opacity: 0.18,
+    top: -50,
+    end: -40,
   },
-  heroLabel: { fontSize: 13, color: 'rgba(255,255,255,0.7)', textAlign: 'left', marginBottom: 4 },
-  heroAmount: { fontSize: 32, fontWeight: '700', color: '#fff', textAlign: 'left' },
-  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', textAlign: 'left', marginTop: 2 },
-  progressBg: { height: 6, backgroundColor: 'rgba(255,255,255,0.2)', borderRadius: 3, marginTop: 10 },
-  progressFill: { height: 6, backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: 3 },
+  heroTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 0,
+  },
+  heroColLabel: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 4 },
+  heroColLabelEnd: { fontSize: 13, color: 'rgba(255,255,255,0.7)', marginBottom: 4, textAlign: 'left' },
+  heroActualAmount: { fontSize: 34, fontWeight: '700', color: '#fff' },
+  heroBudgetCol: { alignItems: 'flex-end' },
+  heroBudgetAmount: { fontSize: 18, fontWeight: '600', color: 'rgba(255,255,255,0.9)', textAlign: 'left' },
+  progressBg: { height: 8, backgroundColor: 'rgba(255,255,255,0.22)', borderRadius: 4, marginTop: 16, marginBottom: 0 },
+  progressFill: { height: 8, backgroundColor: 'rgba(255,255,255,0.75)', borderRadius: 4 },
+  heroBottomRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  heroBalance: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
+  heroPct: { fontSize: 12, color: 'rgba(255,255,255,0.8)', textAlign: 'left' },
+  heroSub: { fontSize: 12, color: 'rgba(255,255,255,0.6)', marginTop: 8 },
 })

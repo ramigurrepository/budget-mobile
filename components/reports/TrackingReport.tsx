@@ -135,7 +135,7 @@ export function TrackingReport() {
                     {item.entries.map((entry) => (
                       <View key={entry.id} style={styles.entryRow}>
                         <Text style={styles.entryAmount}>{formatCurrency(entry.amount)}</Text>
-                        <Text style={styles.entryDesc} numberOfLines={1}>{entry.description}</Text>
+                        <Text style={styles.entryDesc} numberOfLines={1}>{entry.description ?? '—'}</Text>
                         <Text style={styles.entryDate}>{formatDate(entry.date)}</Text>
                       </View>
                     ))}

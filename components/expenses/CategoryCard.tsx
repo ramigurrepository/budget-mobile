@@ -1,14 +1,13 @@
 import { useState, useEffect } from 'react'
 import { View, Text, TouchableOpacity, ActivityIndicator, TextInput, StyleSheet } from 'react-native'
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { Plus, ChevronDown } from 'lucide-react-native'
+import { Plus, Pencil } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase/client'
 import { Modal } from '@/components/ui/Modal'
-import { Button } from '@/components/ui/Button'
 import { EntryList } from './EntryList'
 import { EntryForm } from './EntryForm'
 import { Category, Expense, Income, PaymentMethod, UserProfile } from '@/types'
-import { formatCurrency, getMonthName } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 import { getExpensesForMonth, getIncomesForMonth } from '@/lib/supabase/queries'
 import { useToast } from '@/components/ui/toast-context'
 
@@ -50,9 +49,8 @@ export function CategoryCard({
   const [loaded, setLoaded] = useState(false)
   const [lastPaymentMethodId, setLastPaymentMethodId] = useState<string | undefined>()
 
-  const [budgetEditOpen, setBudgetEditOpen] = useState(false)
+  const [budgetEditMode, setBudgetEditMode] = useState(false)
   const [budgetInput, setBudgetInput] = useState('')
-  const [savingBudget, setSavingBudget] = useState(false)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
 
   useEffect(() => {
@@ -84,8 +82,8 @@ export function CategoryCard({
   }, [viewMonth, viewYear])
 
   async function handleBudgetSave() {
+    setBudgetEditMode(false)
     const amount = parseFloat(budgetInput) || 0
-    setSavingBudget(true)
 
     const { data: existing } = await supabase
       .from('category_budgets')
@@ -112,52 +110,111 @@ export function CategoryCard({
       }))
     }
 
-    setSavingBudget(false)
-
     if (error) {
       toast({ title: 'שגיאה', description: 'לא ניתן לשמור', variant: 'destructive' })
     } else {
       onBudgetChange?.(category.id, amount)
-      toast({ title: 'יעד נשמר', variant: 'success' })
-      setBudgetEditOpen(false)
     }
   }
 
   const actual = loaded ? entries.reduce((s, e) => s + e.amount, 0) : 0
   const pct = budget > 0 ? Math.min((actual / budget) * 100, 100) : 0
+  const displayPct = budget > 0 ? Math.round((actual / budget) * 100) : 0
   const isOver = budget > 0 && actual > budget
+  const overrunAmount = isOver ? actual - budget : 0
 
-  const progressColor =
-    type === 'income' ? '#22c55e' : isOver ? '#ef4444' : pct >= 80 ? '#eab308' : '#386A20'
+  const progressColor = budget > 0
+    ? type === 'income'
+      ? actual >= budget ? '#22c55e' : '#ef4444'
+      : isOver ? '#ef4444' : '#386A20'
+    : '#EEF1E4'
+
+  const pctColor = budget > 0
+    ? type === 'income'
+      ? actual >= budget ? '#22c55e' : '#ef4444'
+      : isOver ? '#ef4444' : '#6b7280'
+    : '#6b7280'
   const typeLabel = type === 'expense' ? 'הוצאה' : 'הכנסה'
 
   return (
     <View style={[styles.card, expanded && styles.cardExpanded]}>
-      <TouchableOpacity style={styles.header} onPress={() => setExpanded(!expanded)} activeOpacity={0.7}>
-        <View style={styles.headerText}>
-          <Text style={styles.categoryName}>{category.name}</Text>
-          <Text style={[styles.amounts, isOver && styles.amountsOver]}>
-            {!loaded
-              ? budget > 0 ? `... / ${formatCurrency(budget)}` : '...'
-              : budget > 0
-              ? `${formatCurrency(actual)} / ${formatCurrency(budget)}`
-              : formatCurrency(actual)}
-          </Text>
-        </View>
-
-        <View style={styles.actions}>
-          <TouchableOpacity
-            style={styles.addBtn}
-            onPress={() => setQuickAddOpen(true)}
-            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-          >
-            <Plus size={20} color="#fff" />
-          </TouchableOpacity>
-          <View style={[styles.chevronWrap, expanded && styles.chevronExpanded]}>
-            <ChevronDown size={16} color="#6b7280" />
+      {/* Top row: category name (right in RTL) + add button (left in RTL) */}
+      <View style={styles.headerRow}>
+        {/* Category tap area — first child = right side in RTL */}
+        <TouchableOpacity
+          style={styles.categoryArea}
+          onPress={() => setExpanded((v) => !v)}
+          activeOpacity={0.75}
+        >
+          <View style={styles.nameRow}>
+            <Text style={styles.categoryName}>{category.name}</Text>
+            {isOver && (
+              <Text style={styles.overrunBadge}>+{formatCurrency(overrunAmount)}</Text>
+            )}
           </View>
+        </TouchableOpacity>
+
+        {/* Add button — second child = left side in RTL */}
+        <TouchableOpacity
+          style={styles.addBtn}
+          onPress={() => setQuickAddOpen(true)}
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+        >
+          <Plus size={20} color="#fff" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Stats row: execution (right in RTL) | budget (left in RTL) */}
+      <View style={styles.statsRow}>
+        {/* Execution area — first child = right side in RTL */}
+        {loaded ? (
+          <View style={styles.execArea}>
+            <Text style={styles.execLabel}>ביצוע</Text>
+            <Text style={styles.execAmount}>{formatCurrency(actual)}</Text>
+            {budget > 0 && (
+              <Text style={[styles.execPct, { color: pctColor }]}>{displayPct}%</Text>
+            )}
+          </View>
+        ) : (
+          <View style={styles.execArea}>
+            <Text style={styles.execLabel}>ביצוע</Text>
+            <Text style={styles.execAmount}>...</Text>
+          </View>
+        )}
+
+        {/* Budget area — second child = left side in RTL */}
+        <View style={styles.budgetArea}>
+          <Text style={styles.budgetLabel}>תקציב</Text>
+          {budgetEditMode ? (
+            <TextInput
+              style={styles.budgetChip}
+              value={budgetInput}
+              onChangeText={setBudgetInput}
+              keyboardType="numeric"
+              autoFocus
+              onBlur={handleBudgetSave}
+              placeholder="0"
+              placeholderTextColor="#9ca3af"
+              textAlign="right"
+            />
+          ) : (
+            <TouchableOpacity
+              style={styles.budgetChip}
+              onPress={() => {
+                setBudgetInput(budget > 0 ? String(budget) : '')
+                setBudgetEditMode(true)
+              }}
+              activeOpacity={0.8}
+            >
+              {/* RTL: number (right) → pencil (left) */}
+              <Text style={styles.budgetChipNumber}>
+                {budget > 0 ? budget.toLocaleString() : '0'}
+              </Text>
+              <Pencil size={12} color="#9ca3af" />
+            </TouchableOpacity>
+          )}
         </View>
-      </TouchableOpacity>
+      </View>
 
       {/* Progress bar */}
       {budget > 0 && (
@@ -170,9 +227,6 @@ export function CategoryCard({
               ]}
             />
           </View>
-          {isOver && (
-            <Text style={styles.overText}>חריגה: {formatCurrency(actual - budget)}</Text>
-          )}
         </View>
       )}
 
@@ -194,14 +248,6 @@ export function CategoryCard({
               viewMonth={viewMonth}
               viewYear={viewYear}
               onRefresh={loadEntries}
-              onBudgetEdit={
-                type === 'expense'
-                  ? () => {
-                      setBudgetInput(budget > 0 ? String(budget) : '')
-                      setBudgetEditOpen(true)
-                    }
-                  : undefined
-              }
             />
           )}
         </View>
@@ -228,32 +274,6 @@ export function CategoryCard({
           onCancel={() => setQuickAddOpen(false)}
         />
       </Modal>
-
-      {/* Budget edit modal */}
-      <Modal
-        visible={budgetEditOpen}
-        onClose={() => setBudgetEditOpen(false)}
-        title={`יעד חודשי — ${category.name}`}
-      >
-        <View style={styles.budgetForm}>
-          <Text style={styles.budgetSubtitle}>{getMonthName(viewMonth)} {viewYear}</Text>
-          <Text style={styles.budgetLabel}>סכום יעד (₪)</Text>
-          <TextInput
-            style={styles.budgetInput}
-            value={budgetInput}
-            onChangeText={setBudgetInput}
-            keyboardType="numeric"
-            placeholder="0"
-            placeholderTextColor="#9ca3af"
-            textAlign="left"
-          />
-          <Text style={styles.budgetHint}>השאר ריק או 0 כדי להסיר את היעד</Text>
-          <View style={styles.budgetButtons}>
-            <Button onPress={handleBudgetSave} loading={savingBudget} style={styles.btn}>שמור</Button>
-            <Button variant="outline" onPress={() => setBudgetEditOpen(false)} style={styles.btn}>ביטול</Button>
-          </View>
-        </View>
-      </Modal>
     </View>
   )
 }
@@ -261,7 +281,7 @@ export function CategoryCard({
 const styles = StyleSheet.create({
   card: {
     backgroundColor: '#fff',
-    borderRadius: 24,
+    borderRadius: 20,
     borderWidth: 1,
     borderColor: '#E2E7D7',
     overflow: 'hidden',
@@ -275,18 +295,32 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 3,
   },
-  header: {
+
+  /* Header row */
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+    paddingBottom: 8,
     gap: 12,
   },
-  headerText: { flex: 1, alignItems: 'flex-start' },
-  categoryName: { fontSize: 17, fontWeight: '600', color: '#1a2e0d', textAlign: 'left' },
-  amounts: { fontSize: 14, color: '#6b7280', textAlign: 'left', marginTop: 2 },
-  amountsOver: { color: '#ef4444' },
-  actions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  categoryArea: { flex: 1 },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  categoryName: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: '#1a2e0d',
+  },
+  overrunBadge: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#ef4444',
+  },
   addBtn: {
     width: 40,
     height: 40,
@@ -295,38 +329,84 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  chevronWrap: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#EEF1E4',
-    alignItems: 'center',
-    justifyContent: 'center',
+
+  /* Stats row */
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingBottom: 10,
   },
-  chevronExpanded: { backgroundColor: '#B7F397' },
-  progressWrap: { paddingHorizontal: 16, paddingBottom: 14 },
+
+  /* Execution area — right side in RTL */
+  execArea: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+  },
+  execLabel: {
+    fontSize: 12,
+    color: '#9ca3af',
+  },
+  execAmount: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1a2e0d',
+  },
+  execPct: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#6b7280',
+  },
+
+  /* Budget area — left side in RTL */
+  budgetArea: {
+    alignItems: 'flex-end',
+    gap: 2,
+  },
+  budgetLabel: {
+    fontSize: 11,
+    color: '#9ca3af',
+  },
+  budgetChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: '#386A20',
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: '#F7FBEF',
+    minWidth: 72,
+  },
+  budgetChipNumber: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a2e0d',
+  },
+
+  /* Progress bar */
+  progressWrap: {
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+  },
   progressTrack: {
     height: 6,
     backgroundColor: '#EEF1E4',
     borderRadius: 3,
     overflow: 'hidden',
   },
-  progressFill: { height: '100%', borderRadius: 3 },
-  overText: { fontSize: 12, color: '#ef4444', textAlign: 'left', marginTop: 3 },
-  expandedContent: { borderTopWidth: 1, borderTopColor: '#E2E7D7', padding: 16 },
-  budgetForm: { gap: 12 },
-  budgetSubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'left' },
-  budgetLabel: { fontSize: 15, fontWeight: '500', color: '#374151', textAlign: 'left' },
-  budgetInput: {
-    borderWidth: 1,
-    borderColor: '#E2E7D7',
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#fff',
-    color: '#1a2e0d',
+  progressFill: {
+    height: '100%',
+    borderRadius: 3,
   },
-  budgetHint: { fontSize: 12, color: '#9ca3af', textAlign: 'left' },
-  budgetButtons: { flexDirection: 'row', gap: 12 },
-  btn: { flex: 1 },
+
+  /* Expanded section */
+  expandedContent: {
+    borderTopWidth: 1,
+    borderTopColor: '#E2E7D7',
+    padding: 16,
+  },
 })

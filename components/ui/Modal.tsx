@@ -46,6 +46,7 @@ export function Modal({ visible, onClose, title, fillHeight, children }: Props) 
                 keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                style={fillHeight && styles.scrollFill}
               >
                 {children}
               </ScrollView>
@@ -72,7 +73,10 @@ const styles = StyleSheet.create({
     maxHeight: '95%',
   },
   contentFill: {
-    height: '90%',
+    height: '95%',
+  },
+  scrollFill: {
+    flex: 1,
   },
   header: {
     flexDirection: 'row',

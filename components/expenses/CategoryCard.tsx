@@ -137,7 +137,7 @@ export function CategoryCard({
   const typeLabel = type === 'expense' ? 'הוצאה' : 'הכנסה'
 
   return (
-    <View style={[styles.card, expanded && styles.cardExpanded]}>
+    <View style={[styles.card, category.report_type === 'tracking' && styles.cardTracking, expanded && styles.cardExpanded]}>
       {/* Top row: category name (right in RTL) + add button (left in RTL) */}
       <View style={styles.headerRow}>
         {/* Category tap area — first child = right side in RTL */}
@@ -254,7 +254,7 @@ export function CategoryCard({
       )}
 
       {/* Quick-add modal */}
-      <Modal visible={quickAddOpen} onClose={() => setQuickAddOpen(false)} title={`הוסף ${typeLabel}`}>
+      <Modal visible={quickAddOpen} onClose={() => setQuickAddOpen(false)} title={`הוסף ${typeLabel}`} fillHeight>
         <EntryForm
           type={type}
           householdId={householdId}
@@ -285,6 +285,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E2E7D7',
     overflow: 'hidden',
+  },
+  cardTracking: {
+    backgroundColor: '#F7FBEF',
   },
   cardExpanded: {
     borderColor: '#386A20',

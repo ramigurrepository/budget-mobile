@@ -15,10 +15,11 @@ type Props = {
   visible: boolean
   onClose: () => void
   title?: string
+  fillHeight?: boolean
   children: ReactNode
 }
 
-export function Modal({ visible, onClose, title, children }: Props) {
+export function Modal({ visible, onClose, title, fillHeight, children }: Props) {
   return (
     <RNModal
       visible={visible}
@@ -32,7 +33,7 @@ export function Modal({ visible, onClose, title, children }: Props) {
           style={styles.kvContainer}
         >
           <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-            <View style={styles.content}>
+            <View style={[styles.content, fillHeight && styles.contentFill]}>
               {title && (
                 <View style={styles.header}>
                   <Text style={styles.title}>{title}</Text>
@@ -69,6 +70,9 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     paddingBottom: 28,
     maxHeight: '95%',
+  },
+  contentFill: {
+    height: '90%',
   },
   header: {
     flexDirection: 'row',

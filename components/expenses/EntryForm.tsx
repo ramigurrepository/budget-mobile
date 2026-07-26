@@ -25,6 +25,7 @@ type Props = {
   defaultYear: number
   editEntry?: Expense | Income
   defaultPaymentMethodId?: string
+  readOnly?: boolean
   onSuccess: (usedPaymentMethodId?: string) => void
   onCancel: () => void
 }
@@ -66,6 +67,7 @@ export function EntryForm({
   defaultYear,
   editEntry,
   defaultPaymentMethodId,
+  readOnly,
   onSuccess,
   onCancel,
 }: Props) {
@@ -104,12 +106,11 @@ export function EntryForm({
   const typeLabel = type === 'expense' ? 'הוצאה' : 'הכנסה'
 
   const numInstallments = parseInt(installments)
-  const isInstallments = !editEntry && numInstallments >= 2
+  const isInstallments = type === 'expense' && !editEntry && numInstallments >= 2
   const perAmount =
     isInstallments && parseFloat(amount) > 0
       ? Math.round((parseFloat(amount) / numInstallments) * 100) / 100
       : null
-
   const installmentOptions = [
     { label: 'ללא', value: '0' },
     ...Array.from({ length: 11 }, (_, i) => ({ label: `${i + 2} תשלומים`, value: String(i + 2) })),
@@ -123,9 +124,16 @@ export function EntryForm({
     setAmountError('')
     setLoading(true)
 
+    const dateObj = parseDateYMD(date)
+    const entryMonth = dateObj.getMonth() + 1
+    const entryYear = dateObj.getFullYear()
+
+    // תשלומים: רשומה חוזרת אחת עם סכום מחולק ותאריך סיום
     if (isInstallments) {
       const perAmountVal = Math.round((parseFloat(amount) / numInstallments) * 100) / 100
-      const rows = Array.from({ length: numInstallments }, (_, i) => ({
+      const endStr = addMonths(date, numInstallments - 1)
+      const endObj = parseDateYMD(endStr)
+      const { error } = await supabase.from(table).insert({
         household_id: householdId,
         category_id: selectedCategoryId,
         payment_method_id: paymentMethodId || null,
@@ -134,13 +142,14 @@ export function EntryForm({
         description: description.trim() || null,
         amount: perAmountVal,
         note: null,
-        date: addMonths(date, i),
-        is_recurring: false,
-        recurring_start_month: null,
-        recurring_start_year: null,
+        date,
+        is_recurring: true,
+        recurring_start_month: entryMonth,
+        recurring_start_year: entryYear,
+        recurring_end_month: endObj.getMonth() + 1,
+        recurring_end_year: endObj.getFullYear(),
         is_active: true,
-      }))
-      const { error } = await supabase.from(table).insert(rows)
+      })
       setLoading(false)
       if (error) {
         toast({ title: 'שגיאה', description: 'אירעה שגיאה בשמירה', variant: 'destructive' })
@@ -150,10 +159,6 @@ export function EntryForm({
       }
       return
     }
-
-    const dateObj = parseDateYMD(date)
-    const entryMonth = dateObj.getMonth() + 1
-    const entryYear = dateObj.getFullYear()
 
     const payload = {
       household_id: householdId,
@@ -168,6 +173,8 @@ export function EntryForm({
       is_recurring: isRecurring,
       recurring_start_month: isRecurring ? entryMonth : null,
       recurring_start_year: isRecurring ? entryYear : null,
+      recurring_end_month: null,
+      recurring_end_year: null,
       is_active: true,
     }
 
@@ -208,13 +215,20 @@ export function EntryForm({
 
   return (
     <View style={styles.form}>
+      {/* Read-only banner for installment entries */}
+      {readOnly && (
+        <View style={styles.readOnlyBanner}>
+          <Text style={styles.readOnlyText}>הוצאה בתשלומים — לצפייה בלבד</Text>
+        </View>
+      )}
+
       {/* Amount */}
       <View style={styles.amountRow}>
         <Text style={styles.label}>סכום (₪)</Text>
         <View>
           <TextInput
             ref={amountRef}
-            style={[styles.input, styles.amountInput, amountError ? styles.inputError : null]}
+            style={[styles.input, styles.amountInput, readOnly && styles.inputDisabled]}
             value={amount}
             onChangeText={(text) => {
               setAmount(text)
@@ -224,6 +238,7 @@ export function EntryForm({
             placeholder="0"
             placeholderTextColor="#9ca3af"
             textAlign="left"
+            editable={!readOnly}
           />
           {!!amountError && <Text style={styles.errorText}>{amountError}</Text>}
         </View>
@@ -233,12 +248,13 @@ export function EntryForm({
       <View>
         <Text style={styles.label}>תיאור</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, readOnly && styles.inputDisabled]}
           value={description}
           onChangeText={setDescription}
           placeholder={`תיאור ה${typeLabel}`}
           placeholderTextColor="#9ca3af"
           textAlign="right"
+          editable={!readOnly}
         />
       </View>
 
@@ -248,6 +264,7 @@ export function EntryForm({
         onValueChange={setSelectedCategoryId}
         options={categoryOptions}
         placeholder="בחר קטגוריה"
+        disabled={readOnly}
       />
 
       {/* Date */}
@@ -255,21 +272,22 @@ export function EntryForm({
         <Text style={styles.inlineLabel}>תאריך</Text>
 
         {Platform.OS === 'web' ? (
-          // Web: native HTML date input
           <input
             type="date"
             value={date}
-            onChange={(e: any) => setDate(e.target.value)}
-            style={webDateInputStyle}
+            onChange={(e: any) => { if (!readOnly) setDate(e.target.value) }}
+            disabled={readOnly}
+            style={{ ...webDateInputStyle, ...(readOnly ? { opacity: 0.7, cursor: 'default' } : {}) }}
           />
         ) : (
           <TouchableOpacity
-            style={[styles.input, styles.inlineInput, styles.dateButton]}
+            style={[styles.input, styles.inlineInput, styles.dateButton, readOnly && styles.inputDisabled]}
             onPress={() => {
+              if (readOnly) return
               setIosPickerDate(parseDateYMD(date))
               setShowDatePicker(true)
             }}
-            activeOpacity={0.7}
+            activeOpacity={readOnly ? 1 : 0.7}
           >
             <Text style={styles.dateText}>{formatDisplayDate(date)}</Text>
             <Calendar size={14} color="#6b7280" />
@@ -278,7 +296,7 @@ export function EntryForm({
       </View>
 
       {/* Android date picker dialog */}
-      {Platform.OS === 'android' && showDatePicker && (
+      {Platform.OS === 'android' && showDatePicker && !readOnly && (
         <DateTimePicker
           value={parseDateYMD(date)}
           mode="date"
@@ -293,6 +311,7 @@ export function EntryForm({
         onValueChange={setAttributedToUserId}
         options={memberOptions}
         placeholder="בחר משתמש"
+        disabled={readOnly}
       />
 
       {/* Payment Method */}
@@ -304,11 +323,12 @@ export function EntryForm({
             onValueChange={setPaymentMethodId}
             options={pmOptions}
             placeholder="בחר אמצעי תשלום"
+            disabled={readOnly}
           />
         </View>
       </View>
 
-      {/* Installments */}
+      {/* Installments — new recurring entry with divided amount */}
       {type === 'expense' && !editEntry && (
         <View style={styles.inlineRow}>
           <Text style={styles.inlineLabel}>תשלומים</Text>
@@ -334,28 +354,34 @@ export function EntryForm({
         </View>
       )}
 
-      {/* Recurring */}
-      <View style={[styles.recurringRow, isInstallments && styles.rowDisabled]}>
-        <Text style={[styles.label, isInstallments && styles.textDisabled]}>קבועה?</Text>
-        <Switch
-          value={isRecurring}
-          onValueChange={(v) => {
-            setIsRecurring(v)
-            if (v) setInstallments('0')
-          }}
-          disabled={isInstallments}
-          trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
-          thumbColor={isRecurring ? '#3b82f6' : '#f3f4f6'}
-        />
-      </View>
+      {/* Recurring — same amount indefinitely, no end date */}
+      {!readOnly && (
+        <View style={[styles.recurringRow, isInstallments && styles.rowDisabled]}>
+          <Text style={[styles.label, isInstallments && styles.textDisabled]}>קבועה?</Text>
+          <Switch
+            value={isRecurring}
+            onValueChange={(v) => {
+              setIsRecurring(v)
+              if (v) setInstallments('0')
+            }}
+            disabled={isInstallments}
+            trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
+            thumbColor={isRecurring ? '#3b82f6' : '#f3f4f6'}
+          />
+        </View>
+      )}
 
       {/* Buttons */}
-      <View style={styles.buttons}>
-        <Button onPress={handleSubmit} loading={loading} style={styles.btn}>
-          {editEntry ? 'עדכן' : `הוסף ${typeLabel}`}
-        </Button>
-        <Button variant="outline" onPress={onCancel} style={styles.btn}>ביטול</Button>
-      </View>
+      {readOnly ? (
+        <Button variant="outline" onPress={onCancel} style={styles.btn}>סגור</Button>
+      ) : (
+        <View style={styles.buttons}>
+          <Button onPress={handleSubmit} loading={loading} style={styles.btn}>
+            {editEntry ? 'עדכן' : `הוסף ${typeLabel}`}
+          </Button>
+          <Button variant="outline" onPress={onCancel} style={styles.btn}>ביטול</Button>
+        </View>
+      )}
 
       {/* iOS date picker modal */}
       {Platform.OS === 'ios' && (
@@ -460,6 +486,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   installmentText: { fontSize: 14, color: '#386A20', fontWeight: '600' },
+  inputDisabled: { backgroundColor: '#f9fafb', opacity: 0.7 },
+  readOnlyBanner: {
+    backgroundColor: '#EEF1E4',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  readOnlyText: { fontSize: 13, color: '#386A20', fontWeight: '600' },
   buttons: { flexDirection: 'row', gap: 12, marginTop: 4 },
   btn: { flex: 1 },
 

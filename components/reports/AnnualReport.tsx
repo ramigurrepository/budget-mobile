@@ -37,25 +37,28 @@ export function AnnualReport() {
 
   async function loadData() {
     setLoading(true)
-    const hid = profile!.household_id
+    try {
+      const hid = profile!.household_id
 
-    const results = await Promise.all(
-      MONTH_NAMES_HE.map(async (_, i) => {
-        const m = i + 1
-        const [expenses, incomes] = await Promise.all([
-          getExpensesForMonth(supabase, hid, m, year),
-          getIncomesForMonth(supabase, hid, m, year),
-        ])
-        return {
-          expense: expenses.reduce((s, e) => s + e.amount, 0),
-          income: incomes.reduce((s, e) => s + e.amount, 0),
-        }
-      })
-    )
+      const results = await Promise.all(
+        MONTH_NAMES_HE.map(async (_, i) => {
+          const m = i + 1
+          const [expenses, incomes] = await Promise.all([
+            getExpensesForMonth(supabase, hid, m, year),
+            getIncomesForMonth(supabase, hid, m, year),
+          ])
+          return {
+            expense: expenses.reduce((s, e) => s + e.amount, 0),
+            income: incomes.reduce((s, e) => s + e.amount, 0),
+          }
+        })
+      )
 
-    setExpenseData(results.map((r) => r.expense))
-    setIncomeData(results.map((r) => r.income))
-    setLoading(false)
+      setExpenseData(results.map((r) => r.expense))
+      setIncomeData(results.map((r) => r.income))
+    } finally {
+      setLoading(false)
+    }
   }
 
   const totalExpense = expenseData.reduce((s, v) => s + v, 0)
@@ -133,8 +136,9 @@ export function AnnualReport() {
             chartConfig={chartConfig}
             bezier
             style={styles.chart}
-            withDots
+            withDots={false}
             withShadow={false}
+            withInnerLines={false}
             formatYLabel={(v) => `₪${Number(v) >= 1000 ? `${Math.round(Number(v) / 1000)}k` : v}`}
           />
 

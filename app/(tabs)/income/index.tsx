@@ -26,26 +26,29 @@ export default function IncomeScreen() {
 
   async function loadData() {
     setLoading(true)
-    const hid = profile!.household_id
+    try {
+      const hid = profile!.household_id
 
-    const [{ data: cats }, { data: pms }, { data: mems }, { data: bgets }, incomes] = await Promise.all([
-      supabase.from('categories').select('*').eq('household_id', hid).eq('type', 'income').order('sort_order'),
-      supabase.from('payment_methods').select('*').eq('household_id', hid).order('sort_order'),
-      supabase.from('user_profiles').select('*').eq('household_id', hid),
-      supabase.from('category_budgets').select('*').eq('year', year).eq('month', month),
-      getIncomesForMonth(supabase, hid, month, year),
-    ])
+      const [{ data: cats }, { data: pms }, { data: mems }, { data: bgets }, incomes] = await Promise.all([
+        supabase.from('categories').select('*').eq('household_id', hid).eq('type', 'income').order('sort_order'),
+        supabase.from('payment_methods').select('*').eq('household_id', hid).order('sort_order'),
+        supabase.from('user_profiles').select('*').eq('household_id', hid),
+        supabase.from('category_budgets').select('*').eq('year', year).eq('month', month),
+        getIncomesForMonth(supabase, hid, month, year),
+      ])
 
-    setCategories(cats ?? [])
-    setPaymentMethods(pms ?? [])
-    setMembers(mems ?? [])
+      setCategories(cats ?? [])
+      setPaymentMethods(pms ?? [])
+      setMembers(mems ?? [])
 
-    const budgetMap: Record<string, number> = {}
-    ;(bgets ?? []).forEach((b: CategoryBudget) => { budgetMap[b.category_id] = b.amount })
-    setBudgets(budgetMap)
+      const budgetMap: Record<string, number> = {}
+      ;(bgets ?? []).forEach((b: CategoryBudget) => { budgetMap[b.category_id] = b.amount })
+      setBudgets(budgetMap)
 
-    setTotalActual(incomes.reduce((s, e) => s + e.amount, 0))
-    setLoading(false)
+      setTotalActual(incomes.reduce((s, e) => s + e.amount, 0))
+    } finally {
+      setLoading(false)
+    }
   }
 
   const totalBudget = categories.reduce((s, cat) => s + (budgets[cat.id] ?? 0), 0)

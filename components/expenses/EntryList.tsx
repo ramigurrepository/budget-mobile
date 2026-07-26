@@ -7,7 +7,7 @@ import { Modal } from '@/components/ui/Modal'
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal'
 import { EntryForm } from './EntryForm'
 import { Expense, Income, Category, PaymentMethod, UserProfile } from '@/types'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency, formatDate, getInstallmentInfo } from '@/lib/utils'
 import { deleteExpense, deleteIncome } from '@/lib/supabase/queries'
 
 type EntryType = 'expense' | 'income'
@@ -88,10 +88,20 @@ export function EntryList({
             const bgColor = member ? avatarColor(member.name) : '#386A20'
             const metaParts = [formatDate(entry.date), method?.name].filter(Boolean)
 
+            const installmentInfo = getInstallmentInfo(
+              entry.is_recurring,
+              entry.recurring_start_month,
+              entry.recurring_start_year,
+              type === 'expense' ? (entry as Expense).recurring_end_month : undefined,
+              type === 'expense' ? (entry as Expense).recurring_end_year : undefined,
+              viewMonth,
+              viewYear
+            )
+
             return (
               <View
                 key={entry.id + (entry.is_recurring ? `-${viewYear}-${viewMonth}` : '')}
-                style={[styles.entryRow, category.report_type === 'tracking' && styles.entryRowTracking]}
+                style={styles.entryRow}
               >
                 {/* Avatar — first child = right side in RTL */}
                 <View style={[styles.avatar, { backgroundColor: bgColor }]}>
@@ -108,7 +118,17 @@ export function EntryList({
                   <View style={styles.entryInfo}>
                     <View style={styles.descRow}>
                       <Text style={styles.descText} numberOfLines={1}>{entry.description ?? '—'}</Text>
-                      {entry.is_recurring && <RefreshCw size={11} color="#9ca3af" />}
+                      {entry.is_recurring && (
+                        installmentInfo ? (
+                          <View style={styles.installmentBadge}>
+                            <Text style={styles.installmentBadgeText}>
+                              {installmentInfo.current}/{installmentInfo.total}
+                            </Text>
+                          </View>
+                        ) : (
+                          <RefreshCw size={11} color="#9ca3af" />
+                        )
+                      )}
                     </View>
                     <Text style={styles.entryMeta} numberOfLines={1}>{metaParts.join(' · ')}</Text>
                   </View>
@@ -136,12 +156,35 @@ export function EntryList({
 
       <ConfirmDeleteModal
         visible={!!confirmDeleteEntry}
-        description={`למחוק את "${confirmDeleteEntry?.description ?? '—'}"?`}
+        description={(() => {
+          const desc = confirmDeleteEntry?.description ?? '—'
+          if (!confirmDeleteEntry) return ''
+          const info = getInstallmentInfo(
+            confirmDeleteEntry.is_recurring,
+            confirmDeleteEntry.recurring_start_month,
+            confirmDeleteEntry.recurring_start_year,
+            type === 'expense' ? (confirmDeleteEntry as Expense).recurring_end_month : undefined,
+            type === 'expense' ? (confirmDeleteEntry as Expense).recurring_end_year : undefined,
+            viewMonth,
+            viewYear
+          )
+          return info
+            ? `למחוק את "${desc}" מחודש זה ואילך (תשלום ${info.current} מתוך ${info.total})?`
+            : `למחוק את "${desc}"?`
+        })()}
         onConfirm={() => confirmDeleteEntry && handleDelete(confirmDeleteEntry)}
         onCancel={() => setConfirmDeleteEntry(null)}
       />
 
-      <Modal visible={!!editEntry} onClose={() => setEditEntry(null)} title={`עריכת ${typeLabel}`}>
+      <Modal
+        visible={!!editEntry}
+        onClose={() => setEditEntry(null)}
+        title={(() => {
+          if (!editEntry) return `עריכת ${typeLabel}`
+          const isInstallment = type === 'expense' && !!(editEntry as Expense).recurring_end_month
+          return isInstallment ? `פרטי ${typeLabel}` : `עריכת ${typeLabel}`
+        })()}
+      >
         {editEntry && (
           <EntryForm
             type={type}
@@ -154,6 +197,7 @@ export function EntryList({
             defaultMonth={viewMonth}
             defaultYear={viewYear}
             editEntry={editEntry}
+            readOnly={type === 'expense' && !!(editEntry as Expense).recurring_end_month}
             onSuccess={() => { setEditEntry(null); onRefresh() }}
             onCancel={() => setEditEntry(null)}
           />
@@ -175,9 +219,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 10,
-  },
-  entryRowTracking: {
-    backgroundColor: '#F7FBEF',
   },
   avatar: {
     width: 34,
@@ -224,6 +265,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1a2e0d',
     flexShrink: 0,
+  },
+  installmentBadge: {
+    backgroundColor: '#EEF1E4',
+    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+  },
+  installmentBadgeText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#386A20',
   },
   deleteBtn: {
     width: 30,

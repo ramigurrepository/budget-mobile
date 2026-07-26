@@ -18,18 +18,19 @@ type Props = {
   options: SelectOption[]
   placeholder?: string
   style?: ViewStyle
+  disabled?: boolean
 }
 
-export function Select({ value, onValueChange, options, placeholder = 'בחר...', style }: Props) {
+export function Select({ value, onValueChange, options, placeholder = 'בחר...', style, disabled }: Props) {
   const [open, setOpen] = useState(false)
   const selected = options.find((o) => o.value === value)
 
   return (
     <>
       <TouchableOpacity
-        onPress={() => setOpen(true)}
-        style={[styles.trigger, style]}
-        activeOpacity={0.7}
+        onPress={() => { if (!disabled) setOpen(true) }}
+        style={[styles.trigger, style, disabled && styles.triggerDisabled]}
+        activeOpacity={disabled ? 1 : 0.7}
       >
         <Text style={[styles.triggerText, !selected && styles.placeholder]} numberOfLines={1}>
           {selected?.label ?? placeholder}
@@ -78,6 +79,7 @@ const styles = StyleSheet.create({
   },
   triggerText: { fontSize: 15, color: '#111827', flex: 1, textAlign: 'left' },
   placeholder: { color: '#9ca3af' },
+  triggerDisabled: { backgroundColor: '#f9fafb', opacity: 0.7 },
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: '#fff',

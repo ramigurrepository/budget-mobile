@@ -28,26 +28,32 @@ export default function ExpensesScreen() {
 
   async function loadData() {
     setLoading(true)
-    const hid = profile!.household_id
+    try {
+      const hid = profile!.household_id
 
-    const [{ data: cats }, { data: pms }, { data: mems }, { data: bgets }, expenses] = await Promise.all([
-      supabase.from('categories').select('*').eq('household_id', hid).eq('type', 'expense').order('sort_order'),
-      supabase.from('payment_methods').select('*').eq('household_id', hid).order('sort_order'),
-      supabase.from('user_profiles').select('*').eq('household_id', hid),
-      supabase.from('category_budgets').select('*').eq('year', year).eq('month', month),
-      getExpensesForMonth(supabase, hid, month, year),
-    ])
+      const [{ data: cats }, { data: pms }, { data: mems }, { data: bgets }, expenses] = await Promise.all([
+        supabase.from('categories').select('*').eq('household_id', hid).eq('type', 'expense').order('sort_order'),
+        supabase.from('payment_methods').select('*').eq('household_id', hid).order('sort_order'),
+        supabase.from('user_profiles').select('*').eq('household_id', hid),
+        supabase.from('category_budgets').select('*').eq('year', year).eq('month', month),
+        getExpensesForMonth(supabase, hid, month, year),
+      ])
 
-    setCategories(cats ?? [])
-    setPaymentMethods(pms ?? [])
-    setMembers(mems ?? [])
+      setCategories((cats ?? []).sort((a, b) => {
+        if (a.report_type !== b.report_type) return a.report_type === 'tracking' ? 1 : -1
+        return (a.sort_order ?? 0) - (b.sort_order ?? 0)
+      }))
+      setPaymentMethods(pms ?? [])
+      setMembers(mems ?? [])
 
-    const budgetMap: Record<string, number> = {}
-    ;(bgets ?? []).forEach((b: CategoryBudget) => { budgetMap[b.category_id] = b.amount })
-    setBudgets(budgetMap)
+      const budgetMap: Record<string, number> = {}
+      ;(bgets ?? []).forEach((b: CategoryBudget) => { budgetMap[b.category_id] = b.amount })
+      setBudgets(budgetMap)
 
-    setTotalActual(expenses.reduce((s, e) => s + e.amount, 0))
-    setLoading(false)
+      setTotalActual(expenses.reduce((s, e) => s + e.amount, 0))
+    } finally {
+      setLoading(false)
+    }
   }
 
   function handleBudgetChange(categoryId: string, amount: number) {

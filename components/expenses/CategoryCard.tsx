@@ -67,13 +67,16 @@ export function CategoryCard({
 
   async function loadEntries() {
     setLoading(true)
-    const data =
-      type === 'expense'
-        ? await getExpensesForMonth(supabase, householdId, viewMonth, viewYear, category.id)
-        : await getIncomesForMonth(supabase, householdId, viewMonth, viewYear, category.id)
-    setEntries(data)
-    setLoaded(true)
-    setLoading(false)
+    try {
+      const data =
+        type === 'expense'
+          ? await getExpensesForMonth(supabase, householdId, viewMonth, viewYear, category.id)
+          : await getIncomesForMonth(supabase, householdId, viewMonth, viewYear, category.id)
+      setEntries(data)
+      setLoaded(true)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {

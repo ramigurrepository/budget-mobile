@@ -34,6 +34,10 @@ export async function getExpensesForMonth(
       `recurring_start_year.lt.${year},` +
       `and(recurring_start_year.eq.${year},recurring_start_month.lte.${month})`
     )
+    .or(
+      `recurring_end_year.is.null,recurring_end_year.gt.${year},` +
+      `and(recurring_end_year.eq.${year},recurring_end_month.gte.${month})`
+    )
 
   if (categoryId) {
     regularQuery = regularQuery.eq('category_id', categoryId)
@@ -131,6 +135,17 @@ export async function deleteExpense(
     return supabase.from('expenses').delete().eq('id', expense.id)
   }
 
+  // Installment or recurring with end date: set end to previous month so past months are preserved
+  if (expense.recurring_end_month && expense.recurring_end_year) {
+    const prevM = viewMonth === 1 ? 12 : viewMonth - 1
+    const prevY = viewMonth === 1 ? viewYear - 1 : viewYear
+    return supabase
+      .from('expenses')
+      .update({ recurring_end_month: prevM, recurring_end_year: prevY })
+      .eq('id', expense.id)
+  }
+
+  // Regular recurring (no end date): keep existing behavior
   const now = new Date()
   const currentMonth = now.getMonth() + 1
   const currentYear = now.getFullYear()

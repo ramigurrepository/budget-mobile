@@ -44,3 +44,18 @@ export function isSameOrBefore(
   if (checkYear === targetYear && checkMonth <= targetMonth) return true
   return false
 }
+
+export function getInstallmentInfo(
+  isRecurring: boolean,
+  startMonth: number | null | undefined,
+  startYear: number | null | undefined,
+  endMonth: number | null | undefined,
+  endYear: number | null | undefined,
+  viewMonth: number,
+  viewYear: number
+): { current: number; total: number } | null {
+  if (!isRecurring || !endMonth || !endYear || !startMonth || !startYear) return null
+  const total = (endYear * 12 + endMonth) - (startYear * 12 + startMonth) + 1
+  const current = (viewYear * 12 + viewMonth) - (startYear * 12 + startMonth) + 1
+  return { current, total }
+}

@@ -101,7 +101,7 @@ export function TrackingReport() {
         />
       </View>
 
-      {selectedCategoryId && (
+      {!!selectedCategoryId && (
         <View style={styles.totalRow}>
           <Text style={styles.totalLabel}>סה"כ {year}:</Text>
           <Text style={styles.totalAmount}>{formatCurrency(yearTotal)}</Text>

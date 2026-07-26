@@ -4,8 +4,9 @@ import { SafeAreaView } from 'react-native-safe-area-context'
 import { MonthlyReport } from '@/components/reports/MonthlyReport'
 import { TrackingReport } from '@/components/reports/TrackingReport'
 import { AnnualReport } from '@/components/reports/AnnualReport'
+import { ExpensesExportReport } from '@/components/reports/ExpensesExportReport'
 
-type Tab = 'monthly' | 'tracking' | 'annual'
+type Tab = 'monthly' | 'tracking' | 'annual' | 'export'
 
 export default function ReportsScreen() {
   const [activeTab, setActiveTab] = useState<Tab>('monthly')
@@ -14,6 +15,7 @@ export default function ReportsScreen() {
     { key: 'monthly', label: 'חודשי' },
     { key: 'tracking', label: 'מעקב' },
     { key: 'annual', label: 'שנתי' },
+    { key: 'export', label: 'ייצוא' },
   ]
 
   return (
@@ -35,6 +37,7 @@ export default function ReportsScreen() {
       {activeTab === 'monthly' && <MonthlyReport />}
       {activeTab === 'tracking' && <TrackingReport />}
       {activeTab === 'annual' && <AnnualReport />}
+      {activeTab === 'export' && <ExpensesExportReport />}
     </SafeAreaView>
   )
 }
@@ -55,6 +58,6 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   tabActive: { borderBottomColor: '#386A20' },
-  tabText: { fontSize: 15, color: '#6b7280', fontWeight: '500' },
+  tabText: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
   tabTextActive: { color: '#386A20', fontWeight: '600' },
 })

@@ -62,9 +62,30 @@ export function MonthlyReport() {
     setLoading(false)
   }
 
-  const totalExpenses = rows.filter((r) => r.category.type === 'expense').reduce((s, r) => s + r.actual, 0)
-  const totalIncome = rows.filter((r) => r.category.type === 'income').reduce((s, r) => s + r.actual, 0)
+  const expenseRows = rows.filter((r) => r.category.type === 'expense')
+  const incomeRows = rows.filter((r) => r.category.type === 'income')
+  const totalExpenses = expenseRows.reduce((s, r) => s + r.actual, 0)
+  const totalIncome = incomeRows.reduce((s, r) => s + r.actual, 0)
   const balance = totalIncome - totalExpenses
+
+  function renderRow(row: Row) {
+    const diff = row.actual - row.budget
+    const isOver = row.budget > 0 && row.category.type === 'expense' && diff > 0
+    return (
+      <View key={row.category.id} style={styles.tableRow}>
+        <Text style={[styles.cell, { flex: 1.5, textAlign: 'right' }]} numberOfLines={1}>
+          {row.category.name}
+        </Text>
+        <Text style={styles.cell}>{row.budget > 0 ? formatCurrency(row.budget) : '—'}</Text>
+        <Text style={[styles.cell, row.category.type === 'income' ? styles.incomeText : styles.expenseText]}>
+          {formatCurrency(row.actual)}
+        </Text>
+        <Text style={[styles.cell, isOver ? styles.overText : styles.normalText]}>
+          {row.budget > 0 ? (isOver ? `+${formatCurrency(diff)}` : formatCurrency(diff)) : '—'}
+        </Text>
+      </View>
+    )
+  }
 
   return (
     <View style={styles.container}>
@@ -99,26 +120,20 @@ export function MonthlyReport() {
             <Text style={styles.headerCell}>הפרש</Text>
           </View>
 
-          {/* Table rows */}
-          {rows.map((row) => {
-            const diff = row.actual - row.budget
-            const isOver = row.budget > 0 && row.category.type === 'expense' && diff > 0
-            return (
-              <View key={row.category.id} style={styles.tableRow}>
-                <View style={{ flex: 1.5 }}>
-                  <Text style={styles.catName}>{row.category.name}</Text>
-                  <Text style={styles.catType}>{row.category.type === 'expense' ? 'הוצאה' : 'הכנסה'}</Text>
-                </View>
-                <Text style={styles.cell}>{row.budget > 0 ? formatCurrency(row.budget) : '—'}</Text>
-                <Text style={[styles.cell, row.category.type === 'income' ? styles.incomeText : styles.expenseText]}>
-                  {formatCurrency(row.actual)}
-                </Text>
-                <Text style={[styles.cell, isOver ? styles.overText : styles.normalText]}>
-                  {row.budget > 0 ? (isOver ? `+${formatCurrency(diff)}` : formatCurrency(diff)) : '—'}
-                </Text>
-              </View>
-            )
-          })}
+          {/* Expense section */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: '#ef4444' }]}>הוצאות</Text>
+          </View>
+          {expenseRows.map(renderRow)}
+
+          {/* Divider */}
+          <View style={styles.sectionDivider} />
+
+          {/* Income section */}
+          <View style={styles.sectionHeader}>
+            <Text style={[styles.sectionTitle, { color: '#386A20' }]}>הכנסות</Text>
+          </View>
+          {incomeRows.map(renderRow)}
         </ScrollView>
       )}
     </View>
@@ -127,8 +142,8 @@ export function MonthlyReport() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  content: { padding: 16, gap: 16 },
-  cards: { flexDirection: 'row', gap: 8 },
+  content: { padding: 16, gap: 4 },
+  cards: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   card: { flex: 1, borderRadius: 12, padding: 12, alignItems: 'center', gap: 4 },
   cardExpense: { backgroundColor: '#fef2f2' },
   cardIncome: { backgroundColor: '#f0fdf4' },
@@ -142,8 +157,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     borderBottomWidth: 2,
     borderBottomColor: '#e5e7eb',
+    marginBottom: 4,
   },
   headerCell: { flex: 1, fontSize: 12, fontWeight: '600', color: '#6b7280', textAlign: 'center' },
+  sectionHeader: {
+    paddingVertical: 6,
+    paddingHorizontal: 4,
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    textAlign: 'right',
+  },
+  sectionDivider: {
+    height: 2,
+    backgroundColor: '#386A20',
+    marginVertical: 8,
+    borderRadius: 1,
+  },
   tableRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -152,8 +183,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
-  catName: { fontSize: 14, fontWeight: '500', color: '#111827', textAlign: 'left' },
-  catType: { fontSize: 11, color: '#9ca3af', textAlign: 'left' },
   cell: { flex: 1, fontSize: 13, textAlign: 'center' },
   incomeText: { color: '#22c55e', fontWeight: '500' },
   expenseText: { color: '#ef4444', fontWeight: '500' },

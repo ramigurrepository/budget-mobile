@@ -49,6 +49,8 @@ export type Expense = {
   is_recurring: boolean
   recurring_start_month?: number | null
   recurring_start_year?: number | null
+  recurring_end_month?: number | null
+  recurring_end_year?: number | null
   is_active: boolean
   created_at: string
   payment_methods?: PaymentMethod | null

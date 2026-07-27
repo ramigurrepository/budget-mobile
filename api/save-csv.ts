@@ -6,8 +6,8 @@ const DRIVE_FOLDER_ID = '1eSBgREJLGlQVMHiygIi2ZHWIHpofuQYe'
 const MONTH_NAMES_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 
 async function uploadToDrive(csv: string, filename: string): Promise<string> {
-  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
-  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n')
+  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.replace(/^﻿/, '').trim()
+  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/^﻿/, '').replace(/\\n/g, '\n')
 
   if (!clientEmail || !privateKey) throw new Error('Missing Google credentials')
 

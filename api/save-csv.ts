@@ -11,6 +11,11 @@ async function uploadToDrive(csv: string, filename: string): Promise<string> {
 
   if (!clientEmail || !privateKey) throw new Error('Missing Google credentials')
 
+  console.log('[Drive] email:', clientEmail)
+  console.log('[Drive] key starts:', privateKey.slice(0, 40))
+  console.log('[Drive] key ends:', privateKey.slice(-40))
+  console.log('[Drive] key has newlines:', privateKey.includes('\n'))
+
   const auth = new google.auth.GoogleAuth({
     credentials: { client_email: clientEmail, private_key: privateKey },
     scopes: ['https://www.googleapis.com/auth/drive.file'],

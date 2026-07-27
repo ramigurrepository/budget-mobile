@@ -64,7 +64,7 @@ export default function ExpensesScreen() {
     ? categories.filter((c) => c.name.toLowerCase().includes(searchQuery.trim().toLowerCase()))
     : categories
 
-  const totalBudget = Object.values(budgets).reduce((s, v) => s + v, 0)
+  const totalBudget = categories.filter(c => c.report_type === 'monthly').reduce((s, c) => s + (budgets[c.id] ?? 0), 0)
   const isOverBudget = totalBudget > 0 && totalActual > totalBudget
   const pct = totalBudget > 0 ? Math.min((totalActual / totalBudget) * 100, 100) : 0
 

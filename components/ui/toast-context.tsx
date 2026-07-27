@@ -22,7 +22,8 @@ export function ToastContextProvider({ children }: { children: ReactNode }) {
   const toast = useCallback((opts: Omit<ToastItem, 'id'>) => {
     const id = Math.random().toString(36).slice(2)
     setToasts((prev) => [...prev, { ...opts, id }])
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500)
+    const duration = opts.variant === 'destructive' ? 10000 : 3500
+    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), duration)
   }, [])
 
   return (

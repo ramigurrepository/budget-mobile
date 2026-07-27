@@ -1,18 +1,15 @@
+import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { createClient } from '@supabase/supabase-js'
 import { google } from 'googleapis'
 
 const DRIVE_FOLDER_ID = '1eSBgREJLGlQVMHiygIi2ZHWIHpofuQYe'
-
 const MONTH_NAMES_HE = ['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר']
 
 async function uploadToDrive(csv: string, filename: string): Promise<string> {
   const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
   const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n')
 
-  if (!clientEmail || !privateKey) {
-    console.error('[Drive] Missing credentials:', { clientEmail: !!clientEmail, privateKey: !!privateKey })
-    throw new Error('Missing Google credentials')
-  }
+  if (!clientEmail || !privateKey) throw new Error('Missing Google credentials')
 
   const auth = new google.auth.GoogleAuth({
     credentials: { client_email: clientEmail, private_key: privateKey },
@@ -20,36 +17,28 @@ async function uploadToDrive(csv: string, filename: string): Promise<string> {
   })
 
   const drive = google.drive({ version: 'v3', auth })
-
   const { data } = await drive.files.create({
-    requestBody: {
-      name: filename,
-      parents: [DRIVE_FOLDER_ID],
-      mimeType: 'text/csv',
-    },
+    requestBody: { name: filename, parents: [DRIVE_FOLDER_ID], mimeType: 'text/csv' },
     media: { mimeType: 'text/csv', body: csv },
     fields: 'id,webViewLink',
   })
 
-  console.log('[Drive] File created:', data.id)
   return data.webViewLink ?? `https://drive.google.com/file/d/${data.id}/view`
 }
 
-export default async function handler(req: Request): Promise<Response> {
-  if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405 })
-  }
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' })
 
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader?.startsWith('Bearer ')) {
-    return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  const authHeader = req.headers['authorization']
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return res.status(401).json({ error: 'Unauthorized' })
   }
 
   const token = authHeader.slice(7)
   const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
   if (!supabaseUrl || !supabaseAnonKey) {
-    return Response.json({ error: 'Server configuration error' }, { status: 500 })
+    return res.status(500).json({ error: 'Server configuration error' })
   }
 
   const supabase = createClient(supabaseUrl, supabaseAnonKey, {
@@ -58,14 +47,13 @@ export default async function handler(req: Request): Promise<Response> {
   })
 
   const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) return Response.json({ error: 'Unauthorized' }, { status: 401 })
+  if (authError || !user) return res.status(401).json({ error: 'Unauthorized' })
 
-  const { month, year } = (await req.json()) as { month: number; year: number }
+  const { month, year } = req.body as { month: number; year: number }
 
   const { data: profile } = await supabase
     .from('user_profiles').select('household_id').eq('id', user.id).single()
-
-  if (!profile) return Response.json({ error: 'Profile not found' }, { status: 404 })
+  if (!profile) return res.status(404).json({ error: 'Profile not found' })
 
   const hid = profile.household_id
   const monthStr = String(month).padStart(2, '0')
@@ -109,17 +97,13 @@ export default async function handler(req: Request): Promise<Response> {
   })
 
   const monthName = MONTH_NAMES_HE[month - 1] ?? ''
-  const lines: string[] = []
-  lines.push(`﻿דוח הוצאות — ${monthName} ${year}`)
-  lines.push('תאריך,קטגוריה,תיאור,סכום,מוציא,אמצעי תשלום,הוצאה קבועה,תשלום')
+  const lines: string[] = [`﻿דוח הוצאות — ${monthName} ${year}`, 'תאריך,קטגוריה,תיאור,סכום,מוציא,אמצעי תשלום,הוצאה קבועה,תשלום']
 
   for (const e of allExpenses) {
     const [y, mo, d] = (e.date as string).split('-')
-    const dateFormatted = `${d}/${mo}/${y}`
     const category = catMap[e.category_id] ?? ''
     const rawDesc: string = e.description ?? ''
     const desc = rawDesc ? `"${rawDesc.replace(/"/g, '""')}"` : ''
-    const amount = String(e.amount ?? 0)
     const payer = profileMap[e.attributed_to_user_id] ?? ''
     const pm = e.payment_method_id ? (pmMap[e.payment_method_id] ?? '') : ''
     const isRec = e.is_recurring ? 'כן' : 'לא'
@@ -129,7 +113,7 @@ export default async function handler(req: Request): Promise<Response> {
       const current = (year * 12 + month) - (e.recurring_start_year * 12 + e.recurring_start_month) + 1
       installment = `${current} מתוך ${total}`
     }
-    lines.push([dateFormatted, category, desc, amount, payer, pm, isRec, installment].join(','))
+    lines.push([`${d}/${mo}/${y}`, category, desc, String(e.amount ?? 0), payer, pm, isRec, installment].join(','))
   }
 
   const csv = lines.join('\n')
@@ -139,9 +123,9 @@ export default async function handler(req: Request): Promise<Response> {
 
   try {
     const fileUrl = await uploadToDrive(csv, filename)
-    return Response.json({ url: fileUrl })
+    return res.status(200).json({ url: fileUrl })
   } catch (err: any) {
-    console.error('[Drive] Upload failed:', err?.message, err?.stack)
-    return Response.json({ error: err?.message ?? 'Upload failed' }, { status: 500 })
+    console.error('[Drive] Upload failed:', err?.message)
+    return res.status(500).json({ error: err?.message ?? 'Upload failed' })
   }
 }

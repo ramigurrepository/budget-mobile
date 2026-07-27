@@ -40,7 +40,7 @@ export function ExpensesExportReport() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('לא מחובר')
 
-      const res = await fetch(`${API_BASE}/api/reports/save-csv`, {
+      const res = await fetch(`${API_BASE}/api/save-csv`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -26,6 +26,7 @@
     "expo-symbols": "~56.0.6",
     "expo-updates": "~56.0.21",
     "expo-web-browser": "~56.0.5",
+    "googleapis": "^173.0.0",
     "lucide-react-native": "^1.22.0",
     "nativewind": "^4.2.6",
     "react": "19.2.3",

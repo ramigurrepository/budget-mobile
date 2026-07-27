@@ -1,22 +1,20 @@
 import { useState } from 'react'
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native'
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react-native'
-import * as FileSystem from 'expo-file-system'
-import * as Sharing from 'expo-sharing'
+import { View, Text, TouchableOpacity, StyleSheet, Linking } from 'react-native'
+import { ChevronLeft, ChevronRight } from 'lucide-react-native'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/components/providers/AuthContext'
 import { useToast } from '@/components/ui/toast-context'
 import { Button } from '@/components/ui/Button'
-import { getMonthName, prevMonth, nextMonth, MONTH_NAMES_HE } from '@/lib/utils'
-import { getExpensesForMonth } from '@/lib/supabase/queries'
+import { getMonthName, prevMonth, nextMonth } from '@/lib/utils'
+
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'https://budget-mobile-rosy.vercel.app'
 
 export function ExpensesExportReport() {
   const today = new Date()
   const [month, setMonth] = useState(today.getMonth() + 1)
   const [year, setYear] = useState(today.getFullYear())
   const [loading, setLoading] = useState(false)
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
-  const [downloadName, setDownloadName] = useState('')
+  const [driveUrl, setDriveUrl] = useState<string | null>(null)
   const { profile } = useAuth()
   const { toast } = useToast()
 
@@ -24,102 +22,47 @@ export function ExpensesExportReport() {
     const p = prevMonth(month, year)
     setMonth(p.month)
     setYear(p.year)
-    setDownloadUrl(null)
+    setDriveUrl(null)
   }
 
   function handleNext() {
     const n = nextMonth(month, year)
     setMonth(n.month)
     setYear(n.year)
-    setDownloadUrl(null)
+    setDriveUrl(null)
   }
 
   async function handleSave() {
-    if (!profile) {
-      toast({ title: 'שגיאה', description: 'לא מחובר', variant: 'destructive' })
-      return
-    }
+    if (!profile) return
     setLoading(true)
-    setDownloadUrl(null)
+    setDriveUrl(null)
     try {
-      const hid = profile.household_id
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('לא מחובר')
 
-      const [expenses, { data: profiles }] = await Promise.all([
-        getExpensesForMonth(supabase, hid, month, year),
-        supabase.from('user_profiles').select('id, name').eq('household_id', hid),
-      ])
-
-      const profileMap: Record<string, string> = Object.fromEntries(
-        (profiles ?? []).map((p: any) => [p.id, p.name])
-      )
-
-      const sorted = [...expenses].sort((a, b) => {
-        if (a.date !== b.date) return a.date.localeCompare(b.date)
-        return (a.categories?.name ?? '').localeCompare(b.categories?.name ?? '')
+      const res = await fetch(`${API_BASE}/api/reports/save-csv`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ month, year }),
       })
 
-      const monthName = MONTH_NAMES_HE[month - 1] ?? ''
-      const lines: string[] = []
-      lines.push(`﻿דוח הוצאות — ${monthName} ${year}`)
-      lines.push('תאריך,קטגוריה,תיאור,סכום,מוציא,אמצעי תשלום,הוצאה קבועה,תשלום')
+      if (!res.ok) throw new Error('שגיאת שרת')
 
-      for (const e of sorted) {
-        const [y, mo, d] = e.date.split('-')
-        const dateFormatted = `${d}/${mo}/${y}`
-        const category = e.categories?.name ?? ''
-        const rawDesc = e.description ?? ''
-        const desc = rawDesc ? `"${rawDesc.replace(/"/g, '""')}"` : ''
-        const amount = String(e.amount ?? 0)
-        const payer = profileMap[e.attributed_to_user_id] ?? ''
-        const pm = e.payment_methods?.name ?? ''
-        const isRec = e.is_recurring ? 'כן' : 'לא'
-
-        const installment =
-          e.is_recurring && e.recurring_end_month && e.recurring_end_year ? 'כן' : ''
-
-        lines.push([dateFormatted, category, desc, amount, payer, pm, isRec, installment].join(','))
-      }
-
-      const csv = lines.join('\n')
-
-      const name = `expenses-${year}-${String(month).padStart(2, '0')}.csv`
-
-      if (Platform.OS === 'web' && typeof URL !== 'undefined') {
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
-        const url = URL.createObjectURL(blob)
-        setDownloadUrl(url)
-        setDownloadName(name)
-        toast({ title: 'הדוח נוצר בהצלחה', variant: 'success' })
-      } else {
-        const path = FileSystem.cacheDirectory + name
-        await FileSystem.writeAsStringAsync(path, csv, { encoding: FileSystem.EncodingType.UTF8 })
-        const canShare = await Sharing.isAvailableAsync()
-        if (canShare) {
-          await Sharing.shareAsync(path, { mimeType: 'text/csv', dialogTitle: 'שמור דוח הוצאות' })
-        } else {
-          toast({ title: 'שיתוף אינו זמין במכשיר זה', variant: 'destructive' })
-        }
-      }
+      const { url } = await res.json()
+      setDriveUrl(url)
+      toast({ title: 'הדוח נשמר בהצלחה ל-Google Drive', variant: 'success' })
     } catch {
-      toast({ title: 'שגיאה', description: 'אירעה שגיאה', variant: 'destructive' })
+      toast({ title: 'שגיאה', description: 'לא ניתן להעלות את הדוח', variant: 'destructive' })
     } finally {
       setLoading(false)
     }
   }
 
-  function handleDownload() {
-    if (!downloadUrl) return
-    const a = document.createElement('a')
-    a.href = downloadUrl
-    a.download = downloadName
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-  }
-
   return (
     <View style={styles.container}>
-      {/* RTL: ChevronRight first in code = RIGHT visually = prev month */}
       <View style={styles.monthRow}>
         <TouchableOpacity onPress={handlePrev} style={styles.arrowBtn} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
           <ChevronRight size={22} color="#386A20" />
@@ -131,17 +74,13 @@ export function ExpensesExportReport() {
       </View>
 
       <Button onPress={handleSave} loading={loading} style={styles.actionBtn}>
-        שמירה
+        שמור ב-Google Drive
       </Button>
 
-      {downloadUrl && Platform.OS === 'web' && (
-        <View style={styles.downloadRow}>
-          <Text style={styles.successText}>✓ הדוח נוצר בהצלחה</Text>
-          <TouchableOpacity style={styles.downloadBtn} onPress={handleDownload}>
-            <Download size={16} color="#386A20" />
-            <Text style={styles.downloadText}>הורד CSV</Text>
-          </TouchableOpacity>
-        </View>
+      {driveUrl && (
+        <TouchableOpacity style={styles.linkBtn} onPress={() => Linking.openURL(driveUrl)}>
+          <Text style={styles.linkText}>פתח קובץ ב-Google Drive</Text>
+        </TouchableOpacity>
       )}
     </View>
   )
@@ -175,29 +114,17 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   actionBtn: {
-    width: 180,
+    width: 200,
   },
-  downloadRow: {
-    alignItems: 'center',
-    gap: 12,
-  },
-  successText: {
-    fontSize: 14,
-    color: '#22c55e',
-    fontWeight: '500',
-  },
-  downloadBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: '#EEF1E4',
+  linkBtn: {
     paddingHorizontal: 20,
     paddingVertical: 12,
+    backgroundColor: '#EEF1E4',
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#386A20',
   },
-  downloadText: {
+  linkText: {
     fontSize: 16,
     color: '#386A20',
     fontWeight: '600',

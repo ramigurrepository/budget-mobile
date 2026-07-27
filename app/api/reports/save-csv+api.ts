@@ -5,15 +5,24 @@ import { MONTH_NAMES_HE } from '@/lib/utils'
 const DRIVE_FOLDER_ID = '1eSBgREJLGlQVMHiygIi2ZHWIHpofuQYe'
 
 async function uploadToDrive(csv: string, filename: string): Promise<string> {
+  const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
+  const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n')
+
+  if (!clientEmail || !privateKey) {
+    console.error('[Drive] Missing credentials:', { clientEmail: !!clientEmail, privateKey: !!privateKey })
+    throw new Error('Missing Google credentials')
+  }
+
+  console.log('[Drive] Authenticating as:', clientEmail)
+
   const auth = new google.auth.GoogleAuth({
-    credentials: {
-      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-      private_key: process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n'),
-    },
+    credentials: { client_email: clientEmail, private_key: privateKey },
     scopes: ['https://www.googleapis.com/auth/drive.file'],
   })
 
   const drive = google.drive({ version: 'v3', auth })
+
+  console.log('[Drive] Uploading file:', filename)
 
   const { data } = await drive.files.create({
     requestBody: {
@@ -28,6 +37,7 @@ async function uploadToDrive(csv: string, filename: string): Promise<string> {
     fields: 'id,webViewLink',
   })
 
+  console.log('[Drive] File created:', data.id)
   return data.webViewLink ?? `https://drive.google.com/file/d/${data.id}/view`
 }
 
@@ -163,6 +173,11 @@ export async function POST(request: Request): Promise<Response> {
   const exportDate = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
   const filename = `הוצאות-${year}-${monthStr2}-(${exportDate}).csv`
 
-  const fileUrl = await uploadToDrive(csv, filename)
-  return Response.json({ url: fileUrl })
+  try {
+    const fileUrl = await uploadToDrive(csv, filename)
+    return Response.json({ url: fileUrl })
+  } catch (err: any) {
+    console.error('[Drive] Upload failed:', err?.message, err?.stack)
+    return Response.json({ error: err?.message ?? 'Upload failed' }, { status: 500 })
+  }
 }

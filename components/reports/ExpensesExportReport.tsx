@@ -49,13 +49,13 @@ export function ExpensesExportReport() {
         body: JSON.stringify({ month, year }),
       })
 
-      if (!res.ok) throw new Error('שגיאת שרת')
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error ?? 'שגיאת שרת')
 
-      const { url } = await res.json()
-      setDriveUrl(url)
+      setDriveUrl(json.url)
       toast({ title: 'הדוח נשמר בהצלחה ל-Google Drive', variant: 'success' })
-    } catch {
-      toast({ title: 'שגיאה', description: 'לא ניתן להעלות את הדוח', variant: 'destructive' })
+    } catch (err: any) {
+      toast({ title: 'שגיאה', description: err?.message ?? 'לא ניתן להעלות את הדוח', variant: 'destructive' })
     } finally {
       setLoading(false)
     }

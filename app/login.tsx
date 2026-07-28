@@ -41,7 +41,6 @@ export default function LoginScreen() {
           provider: 'google',
           options: {
             redirectTo: window.location.origin,
-            scopes: 'https://www.googleapis.com/auth/drive.file',
           },
         })
         if (error) throw error
@@ -55,7 +54,6 @@ export default function LoginScreen() {
         options: {
           redirectTo: redirectUrl,
           skipBrowserRedirect: true,
-          scopes: 'https://www.googleapis.com/auth/drive.file',
         },
       })
       if (error) throw error

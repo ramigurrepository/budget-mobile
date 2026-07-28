@@ -4,6 +4,7 @@ const REDIRECT_URI = 'https://budget-mobile-rosy.vercel.app/api/setup-drive-call
 
 export default function handler(_req: VercelRequest, res: VercelResponse) {
   const CLIENT_ID = process.env.GOOGLE_CLIENT_ID
+  console.log('[setup-drive] CLIENT_ID:', CLIENT_ID)
   if (!CLIENT_ID) return res.status(500).send('Missing GOOGLE_CLIENT_ID env var')
   const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')
   url.searchParams.set('client_id', CLIENT_ID)

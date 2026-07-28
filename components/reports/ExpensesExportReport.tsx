@@ -45,6 +45,7 @@ export function ExpensesExportReport() {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
+          ...(session.provider_token ? { 'X-Google-Token': session.provider_token } : {}),
         },
         body: JSON.stringify({ month, year }),
       })

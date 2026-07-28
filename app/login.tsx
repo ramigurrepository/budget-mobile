@@ -39,7 +39,10 @@ export default function LoginScreen() {
       if (Platform.OS === 'web') {
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
-          options: { redirectTo: window.location.origin },
+          options: {
+            redirectTo: window.location.origin,
+            scopes: 'https://www.googleapis.com/auth/drive.file',
+          },
         })
         if (error) throw error
         // browser will redirect to Google then back — no further handling needed
@@ -49,7 +52,11 @@ export default function LoginScreen() {
       const redirectUrl = makeRedirectUri({ scheme: 'budgetmobile' })
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: redirectUrl, skipBrowserRedirect: true },
+        options: {
+          redirectTo: redirectUrl,
+          skipBrowserRedirect: true,
+          scopes: 'https://www.googleapis.com/auth/drive.file',
+        },
       })
       if (error) throw error
       if (data.url) {

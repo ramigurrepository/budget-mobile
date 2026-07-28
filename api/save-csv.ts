@@ -154,11 +154,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const filename = `הוצאות-${year}-${monthStr}-(${exportDate}).csv`
 
   try {
-    const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim() ?? ''
-    const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n') ?? ''
-    if (!clientEmail || !privateKey) return res.status(500).json({ error: 'Missing Google credentials' })
+    const googleToken = req.headers['x-google-token'] as string | undefined
+    let accessToken: string
 
-    const accessToken = await getGoogleAccessToken(clientEmail, privateKey)
+    if (googleToken) {
+      accessToken = googleToken
+    } else {
+      const clientEmail = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL?.trim() ?? ''
+      const privateKey = process.env.GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY?.replace(/\\n/g, '\n') ?? ''
+      if (!clientEmail || !privateKey) return res.status(500).json({ error: 'Missing Google credentials' })
+      accessToken = await getGoogleAccessToken(clientEmail, privateKey)
+    }
+
     const fileUrl = await uploadToDrive(csv, filename, accessToken)
     return res.status(200).json({ url: fileUrl })
   } catch (err: any) {

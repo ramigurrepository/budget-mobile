@@ -1,10 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
-const CLIENT_ID = process.env.GOOGLE_CLIENT_ID!
-const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET!
 const REDIRECT_URI = 'https://budget-mobile-rosy.vercel.app/api/setup-drive-callback'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const CLIENT_ID = process.env.GOOGLE_CLIENT_ID
+  const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET
+  if (!CLIENT_ID || !CLIENT_SECRET) return res.status(500).send('Missing credentials env vars')
   const code = req.query.code as string
   if (!code) return res.status(400).send('Missing code')
 

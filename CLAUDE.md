@@ -17,15 +17,48 @@ npx expo start --clear
 npx expo start --web
 ```
 
+## Deployment Rules — חובה לקרוא לפני כל שינוי קוד
+
+> **חוק ברזל: כל שינוי עובר דרך PR ל-`master` בלבד.**
+> אסור בהחלט להשתמש בפקודות הבאות:
+> - ❌ `git push origin master` ישירות — master מוגן, הפוש ייחסם
+> - ❌ `vercel --prod` / `npx vercel --prod` — עוקף את git
+> - ❌ `eas update` / `npx eas-cli update` — **EAS OTA לא בשימוש בפרויקט זה בכלל**
+>
+> **למה:** PR מתעד מה השתנה בכל גרסה ומאפשר rollback מדויק.
+
+### זרימת עבודה — PR Workflow
+
+```bash
+# 1. צור branch חדש לכל פיצ'ר / תיקון
+git checkout -b fix/שם-קצר          # לבאג
+git checkout -b feat/שם-קצר         # לפיצ'ר חדש
+
+# 2. בצע שינויים ו-commit
+git add <files>
+git commit -m "תיאור קצר של השינוי"
+
+# 3. דחוף את ה-branch
+git push origin <branch-name>
+
+# 4. פתח PR ב-GitHub (ימלא את תבנית ה-PR אוטומטית)
+gh pr create --fill
+
+# 5. בדוק את ה-Vercel Preview URL שנוצר אוטומטית ל-PR
+# 6. מזג את ה-PR → Vercel מפיץ לפרודקשן אוטומטית (~1 דקה)
+gh pr merge --squash
+```
+
+> **Rollback אם יש בעיה:** vercel.com/ramigur/budget-mobile/deployments → בחר דיפלוי ישן → "Promote to Production"
+
 ## Deployment Architecture
 
 | Mechanism | What it updates | Speed | User action needed |
 |-----------|----------------|-------|--------------------|
 | Vercel (auto, GitHub-connected) | Web app | ~1 min | Hard refresh (Ctrl+Shift+R) |
 | Native EAS build (manual) | New APK to install | ~22 min | Install APK from EAS link |
-| GitHub Actions → EAS OTA | JS bundle on installed apps | ~3 min | ⚠️ See note below |
 
-> ⚠️ **OTA אינו אמין בפרויקט זה.** על אף שהשרת מחזיר עדכונים תקינים, האפליקציה המותקנת אינה מקבלת אותם באופן עקבי. **כל שינוי קוד שצריך להגיע לטלפון דורש APK חדש.** OTA פועל רק לווב.
+> ❌ **EAS OTA — לא בשימוש.** אינו אמין בפרויקט זה. עדכון לטלפון = APK חדש בלבד.
 
 ### APK — הדרך היחידה לעדכן את הטלפון
 
@@ -43,24 +76,10 @@ The build runs on EAS servers (~22 min). The local CLI may time out — that is 
 
 There is also an older separate app called `budget-app` on some devices — it is a different codebase and does not receive updates from this project.
 
-### EAS OTA (לווב בלבד — אינו אמין לנייד)
-
-```powershell
-# Manual OTA on PowerShell
-$env:CI = "1"; npx eas-cli update --channel production --message "description" --environment production
-```
-
-- **Account**: `ramigur`, **Project**: `budget-mobile`, **EAS Project ID**: `8a224645-99a8-4e1c-8e2b-8499abfc39a8`
-- **GitHub Actions** runs OTA automatically on every push to master — requires `EXPO_TOKEN` secret.
-- OTA verification: `npx eas-cli update:list --branch production --limit 1`
-- After OTA, report: ✅ OTA confirmed (Group ID: `...`) | 🌐 Web: `https://budget-mobile-rosy.vercel.app`
-
 ### Vercel (Web)
 
 - **Stable production URL**: `https://budget-mobile-rosy.vercel.app` — always points to the latest production deployment. Individual deployment URLs (e.g. `budget-mobile-3c7mh7mb6-....vercel.app`) go stale.
 - There are 3 Vercel projects in this account: `budget-mobile` (this app), `budget-app` (old/separate), `project-scale`. Always deploy to `budget-mobile`.
-- Manual deploy: `npx vercel --prod --yes`
-- Force rebuild without cache: `npx vercel --prod --yes --force`
 - Vercel runs `npx expo export --platform web` on each deploy. `dist/` is in `.gitignore` and always rebuilt fresh.
 - Users may see a cached old version even after a new deploy due to service worker caching — they need Ctrl+Shift+R or an incognito window.
 
@@ -87,6 +106,14 @@ EXPO_PUBLIC_SUPABASE_ANON_KEY=
 EXPO_TOKEN=   # only needed for EAS CLI commands
 ```
 
+**Vercel-only env vars** (not in `.env.local`, set via Vercel dashboard or `vercel env add`):
+```
+GOOGLE_CLIENT_ID            # Google OAuth app client ID
+GOOGLE_CLIENT_SECRET        # Google OAuth app client secret
+GOOGLE_DRIVE_REFRESH_TOKEN  # Long-lived refresh token for uploading CSVs to Drive folder 1eSBgREJLGlQVMHiygIi2ZHWIHpofuQYe
+```
+The refresh token was obtained once via `/api/setup-drive` → `/api/setup-drive-callback` (one-time OAuth flow). It does not expire unless revoked. To regenerate: visit `https://budget-mobile-rosy.vercel.app/api/setup-drive`.
+
 ## Architecture
 
 ### Stack
@@ -102,6 +129,19 @@ The app is fully Hebrew/RTL. Two mechanisms work together:
 - **Web**: `direction: rtl` in `global.css` on `html, body, #root` — same effect for the browser
 
 When adding new layouts, be aware that `flexDirection: 'row'` renders right-to-left on both platforms. The first child in code appears on the **right** side visually.
+
+### Vercel Serverless Functions (`/api/`)
+
+The root-level `api/` directory contains Vercel serverless functions using `VercelRequest`/`VercelResponse` from `@vercel/node`. These are **not** Expo Router API routes — Expo Router's `app/api/+api.ts` pattern is silently ignored with static export (`npx expo export --platform web`).
+
+Current functions:
+- `api/save-csv.ts` — builds and uploads a monthly expense CSV to Google Drive
+- `api/setup-drive.ts` — one-time endpoint to start OAuth flow for refresh token
+- `api/setup-drive-callback.ts` — receives OAuth code and returns the refresh token
+
+`vercel.json` has a catch-all rewrite routing everything to the SPA. Root `/api/` functions bypass this automatically because Vercel matches them before the catch-all.
+
+**Important**: avoid `googleapis` npm package in these functions — it's too large and causes cold start timeouts. Use direct `fetch` calls to Google REST APIs instead.
 
 ### Routing & Auth Flow
 ```
@@ -126,20 +166,44 @@ Key tables:
 - `user_profiles` — linked to Supabase auth users, belongs to a household
 - `categories` — expense or income categories (`type: 'expense' | 'income'`)
 - `category_budgets` — monthly budget targets per category (year + month)
-- `expenses` / `incomes` — transactions; support `is_recurring` flag
-- `recurring_exceptions` — overrides for specific months of a recurring item
+- `expenses` — transactions; `is_recurring`, `recurring_start_month/year`, `recurring_end_month/year` (installments only), `is_active`
+- `incomes` — same as expenses but without `recurring_end_month/year`
+- `recurring_exceptions` — rows that suppress a recurring entry for a specific month (used instead of deletion for past months)
 - `payment_methods` — cash, card, transfer, etc.
 
 ### Recurring Items Logic
 `lib/supabase/queries.ts` handles the complexity:
 - `getExpensesForMonth()` / `getIncomesForMonth()` fetch both one-off entries for the month AND recurring entries that started on or before the month, minus any exceptions
-- Delete on a recurring item: past months get a `recurring_exception`, future months get a hard delete
+- Delete on a recurring item: past months get a `recurring_exception`, future months set `is_active = false`
+
+### Installments (תשלומים) vs Recurring (קבועה) — critical distinction
+
+These are two separate concepts sharing `is_recurring = true` in the DB but with different behavior:
+
+| | תשלומים (installments) | קבועה (recurring) |
+|--|--|--|
+| DB | `is_recurring=true`, `recurring_end_month/year` set, amount = total÷n | `is_recurring=true`, no end date, full amount each month |
+| UI entry | `EntryForm` installment dropdown (2–12 payments) | `EntryForm` "קבועה?" switch |
+| Edit | Read-only — opens with banner "הוצאה בתשלומים — לצפייה בלבד", only Close button | Fully editable |
+| Badge | X/Y badge in `EntryList` (e.g. "3/12") | RefreshCw icon |
+| Delete | Sets `recurring_end_month/year` to previous month (preserves past) | Future: `is_active=false`; past: `recurring_exception` row |
+
+`getInstallmentInfo()` in `lib/utils.ts` computes `{ current, total }` from start/end month+year and the viewed month. Returns `null` for non-installment recurring entries.
 
 ### Component Patterns
 - **CategoryCard** (`components/expenses/CategoryCard.tsx`) — the main expandable list item used on both Expenses and Income screens. Shows budget vs. actual, expands to show `EntryList` + `EntryForm`.
+- **EntryForm** (`components/expenses/EntryForm.tsx`) — handles both add and edit. Accepts `readOnly` prop for installment entries (all fields disabled, only Close button shown). The installment dropdown and recurring switch are mutually exclusive.
 - **MonthSelector** (`components/layout/MonthSelector.tsx`) — shared header for Expenses, Income, and Reports. Tapping the month label resets to current month.
 - **Modal** (`components/ui/Modal.tsx`) — bottom-sheet style modal used throughout for forms.
-- Screens query Supabase directly in a `loadData()` function called on mount and whenever `month`/`year` context changes.
+- **Select** (`components/ui/Select.tsx`) — custom bottom-sheet picker; accepts `disabled` prop.
+- Screens query Supabase directly in a `loadData()` function wrapped in `try/finally` to ensure `setLoading(false)` always runs.
+
+### Reports Screen
+`app/(tabs)/reports/index.tsx` renders four sub-tabs with local state (not router tabs):
+- **חודשי** — `MonthlyReport`: expense rows (red header) then income rows (green header), uses global `MonthContext`
+- **מעקב** — `TrackingReport`: per-category drill-down, uses global `MonthContext`
+- **שנתי** — `AnnualReport`: `react-native-chart-kit` LineChart + monthly table. The chart library uses `react-native-svg` and produces `transform-origin` console warnings on web — this is a library limitation, the chart still renders correctly.
+- **ייצוא** — `ExpensesExportReport`: calls `POST /api/save-csv` (Vercel serverless function) which builds a UTF-8 CSV with BOM and uploads it to Google Drive folder `1eSBgREJLGlQVMHiygIi2ZHWIHpofuQYe` via OAuth refresh token. Returns a Drive link. Uses **local** month state (not global `MonthContext`).
 
 ### Styling Conventions
 - Use **NativeWind** (`className`) for simple styles; use `StyleSheet.create` for complex or performance-sensitive layouts (FlatList items, animated components).

@@ -7,7 +7,7 @@ import { useMonthContext } from '@/components/providers/MonthContext'
 import { MonthSelector } from '@/components/layout/MonthSelector'
 import { CategoryCard } from '@/components/expenses/CategoryCard'
 import { Category, CategoryBudget, PaymentMethod, UserProfile } from '@/types'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, applyUserOrder } from '@/lib/utils'
 import { getIncomesForMonth } from '@/lib/supabase/queries'
 
 export default function IncomeScreen() {
@@ -38,7 +38,7 @@ export default function IncomeScreen() {
       ])
 
       setCategories(cats ?? [])
-      setPaymentMethods(pms ?? [])
+      setPaymentMethods(applyUserOrder(pms ?? [], profile?.payment_method_order))
       setMembers(mems ?? [])
 
       const budgetMap: Record<string, number> = {}

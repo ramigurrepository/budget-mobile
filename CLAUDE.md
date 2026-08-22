@@ -30,26 +30,54 @@ npx expo start --web
 ### זרימת עבודה — PR Workflow
 
 ```bash
-# 1. צור branch חדש לכל פיצ'ר / תיקון
+# 1. תמיד התחל מ-master מעודכן
+git checkout master && git pull
+
+# 2. צור branch חדש לכל פיצ'ר / תיקון
 git checkout -b fix/שם-קצר          # לבאג
 git checkout -b feat/שם-קצר         # לפיצ'ר חדש
 
-# 2. בצע שינויים ו-commit
+# 3. בצע שינויים ו-commit
 git add <files>
 git commit -m "תיאור קצר של השינוי"
 
-# 3. דחוף את ה-branch
+# 4. דחוף את ה-branch
 git push origin <branch-name>
 
-# 4. פתח PR ב-GitHub (ימלא את תבנית ה-PR אוטומטית)
-gh pr create --fill
+# 5. פתח PR עם כותרת ותיאור מלא
+gh pr create --title "כותרת קצרה" --body "$(cat <<'EOF'
+## מה השתנה?
+תיאור מה השתנה ולמה.
 
-# 5. בדוק את ה-Vercel Preview URL שנוצר אוטומטית ל-PR
-# 6. מזג את ה-PR → Vercel מפיץ לפרודקשן אוטומטית (~1 דקה)
+## סוג השינוי
+- [x] תיקון באג / פיצ'ר חדש / שיפור
+
+## צ'קליסט
+- [ ] בדקתי ב-Web
+- [ ] בדקתי ב-Android
+EOF
+)"
+
+# 6. בדוק את ה-Vercel Preview URL שנוצר אוטומטית ל-PR
+# 7. מזג ← Vercel מפיץ לפרודקשן אוטומטית (~1 דקה)
 gh pr merge --squash
+
+# 8. חזור ל-master ומשוך
+git checkout master && git pull
 ```
 
 > **Rollback אם יש בעיה:** vercel.com/ramigur/budget-mobile/deployments → בחר דיפלוי ישן → "Promote to Production"
+
+### הוראות ל-Claude Code — חובה לפני כל שינוי קוד
+
+**לפני כתיבת קוד:**
+1. `git checkout master && git pull` — תמיד מ-master מעודכן
+2. `git checkout -b feat/שם` — branch חדש לכל משימה
+
+**אחרי סיום:**
+1. `git add` + `git commit` + `git push origin <branch>`
+2. `gh pr create` עם כותרת ותיאור ברור של מה השתנה ולמה
+3. לא למזג לבד — להציג ל-user את לינק ה-PR ולחכות לאישור
 
 ## Deployment Architecture
 

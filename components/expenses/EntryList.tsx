@@ -134,7 +134,7 @@ export function EntryList({
                   </View>
 
                   {/* Amount — second child = left side in RTL */}
-                  <Text style={styles.entryAmount}>
+                  <Text style={[styles.entryAmount, entry.amount < 0 && styles.entryAmountNegative]}>
                     {formatCurrency(entry.amount)}
                   </Text>
                 </TouchableOpacity>
@@ -265,6 +265,9 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#1a2e0d',
     flexShrink: 0,
+  },
+  entryAmountNegative: {
+    color: '#22c55e',
   },
   installmentBadge: {
     backgroundColor: '#EEF1E4',

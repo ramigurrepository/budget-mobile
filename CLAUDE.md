@@ -64,6 +64,31 @@ $env:CI = "1"; npx eas-cli update --channel production --message "description" -
 - Vercel runs `npx expo export --platform web` on each deploy. `dist/` is in `.gitignore` and always rebuilt fresh.
 - Users may see a cached old version even after a new deploy due to service worker caching — they need Ctrl+Shift+R or an incognito window.
 
+### Database Backups (Supabase)
+
+גיבויים אוטומטיים רצים דרך GitHub Actions (`.github/workflows/db-backup.yml`):
+
+| מתי | מה נשמר | איפה למצוא |
+|-----|---------|-----------|
+| כל `git push` למאסטר | schema + נתונים מלאים | GitHub → Actions → **DB Backup** → Artifacts |
+| כל לילה ב-02:00 UTC | schema + נתונים מלאים | GitHub → Actions → **DB Backup** → Artifacts |
+
+- גיבויים נשמרים **30 יום** כ-Artifacts
+- קובץ `schema.sql` — מבנה הטבלאות (pg_dump schema-only)
+- קובץ `data.dump` — כל הנתונים (pg_dump custom format)
+
+**שחזור נתונים:**
+```bash
+pg_restore -d "postgresql://postgres:[PASSWORD]@db.yumfyzfarfxjaibadkxk.supabase.co:5432/postgres" data.dump
+```
+
+**שחזור סכמה:**
+```bash
+psql "postgresql://postgres:[PASSWORD]@db.yumfyzfarfxjaibadkxk.supabase.co:5432/postgres" -f schema.sql
+```
+
+הסוד `SUPABASE_DB_URL` מוגדר ב-GitHub Secrets עם ה-connection string המלא.
+
 ### Supabase Auth & OAuth
 
 Google OAuth redirect URLs must be registered in the Supabase dashboard under **Authentication → URL Configuration**:

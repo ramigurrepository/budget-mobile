@@ -1,0 +1,46 @@
+name: DB Backup
+
+on:
+  push:
+    branches: [master]
+  schedule:
+    - cron: '0 2 * * *'  # כל יום ב-02:00 UTC
+
+jobs:
+  backup:
+    name: Backup Supabase DB
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install PostgreSQL client
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Dump schema
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          pg_dump "$DATABASE_URL" \
+            --schema-only \
+            --no-owner \
+            --no-acl \
+            -f schema.sql
+
+      - name: Dump data
+        env:
+          DATABASE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          pg_dump "$DATABASE_URL" \
+            --data-only \
+            --no-owner \
+            --no-acl \
+            --format=custom \
+            -f data.dump
+
+      - name: Upload backup
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ github.sha }}
+          path: |
+            schema.sql
+            data.dump
+          retention-days: 30

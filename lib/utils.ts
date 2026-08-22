@@ -6,6 +6,9 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatCurrency(amount: number): string {
+  if (amount < 0) {
+    return '-₪' + Math.round(Math.abs(amount)).toLocaleString('he-IL')
+  }
   return '₪' + Math.round(amount).toLocaleString('he-IL')
 }
 
@@ -43,6 +46,14 @@ export function isSameOrBefore(
   if (checkYear < targetYear) return true
   if (checkYear === targetYear && checkMonth <= targetMonth) return true
   return false
+}
+
+export function applyUserOrder<T extends { id: string }>(items: T[], orderIds: string[] | null | undefined): T[] {
+  if (!orderIds || orderIds.length === 0) return items
+  const idSet = new Set(orderIds)
+  const ordered = orderIds.flatMap(id => { const item = items.find(m => m.id === id); return item ? [item] : [] })
+  const rest = items.filter(item => !idSet.has(item.id))
+  return [...ordered, ...rest]
 }
 
 export function getInstallmentInfo(

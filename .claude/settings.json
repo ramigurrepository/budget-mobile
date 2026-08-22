@@ -1,5 +1,13 @@
 {
   "enabledPlugins": {
     "expo@claude-plugins-official": true
+  },
+  "permissions": {
+    "deny": [
+      "Bash(vercel*--prod*)",
+      "Bash(npx vercel*--prod*)",
+      "Bash(*eas*update*)",
+      "Bash(*eas-cli*update*)"
+    ]
   }
 }

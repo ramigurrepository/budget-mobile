@@ -4,6 +4,7 @@ export type UserProfile = {
   name: string
   email?: string
   is_admin: boolean
+  payment_method_order?: string[] | null
 }
 
 export type Household = {

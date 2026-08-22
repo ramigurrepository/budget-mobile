@@ -7,9 +7,10 @@ type AuthContextType = {
   session: Session | null
   profile: UserProfile | null
   loading: boolean
+  refreshProfile: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType>({ session: null, profile: null, loading: true })
+const AuthContext = createContext<AuthContextType>({ session: null, profile: null, loading: true, refreshProfile: async () => {} })
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -42,8 +43,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false)
   }
 
+  async function refreshProfile() {
+    const { data: { session: current } } = await supabase.auth.getSession()
+    if (current?.user) {
+      const { data } = await supabase.from('user_profiles').select('*').eq('id', current.user.id).single()
+      setProfile(data)
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ session, profile, loading }}>
+    <AuthContext.Provider value={{ session, profile, loading, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   )

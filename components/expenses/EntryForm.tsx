@@ -79,7 +79,10 @@ export function EntryForm({
 
   const [selectedCategoryId, setSelectedCategoryId] = useState(editEntry?.category_id ?? categoryId)
   const [description, setDescription] = useState(editEntry?.description ?? '' as string)
-  const [amount, setAmount] = useState(editEntry?.amount?.toString() ?? '')
+  const [isNegative, setIsNegative] = useState(editEntry != null ? editEntry.amount < 0 : false)
+  const [amount, setAmount] = useState(
+    editEntry?.amount != null ? Math.abs(editEntry.amount).toString() : ''
+  )
   const [date, setDate] = useState(defaultDate)
   const [paymentMethodId, setPaymentMethodId] = useState(editEntry?.payment_method_id ?? defaultPaymentMethodId ?? '')
   const [attributedToUserId, setAttributedToUserId] = useState(editEntry?.attributed_to_user_id ?? currentUserId)
@@ -160,23 +163,27 @@ export function EntryForm({
       return
     }
 
-    const payload = {
+    const finalAmount = isNegative ? -Math.abs(parseFloat(amount)) : parseFloat(amount)
+
+    const basePayload = {
       household_id: householdId,
       category_id: selectedCategoryId,
       payment_method_id: paymentMethodId || null,
       entered_by_user_id: currentUserId,
       attributed_to_user_id: attributedToUserId,
       description: description.trim() || null,
-      amount: parseFloat(amount),
+      amount: finalAmount,
       note: null,
       date,
       is_recurring: isRecurring,
       recurring_start_month: isRecurring ? entryMonth : null,
       recurring_start_year: isRecurring ? entryYear : null,
-      recurring_end_month: null,
-      recurring_end_year: null,
       is_active: true,
     }
+
+    const payload = type === 'expense'
+      ? { ...basePayload, recurring_end_month: null, recurring_end_year: null }
+      : basePayload
 
     let error
     if (editEntry) {
@@ -188,7 +195,7 @@ export function EntryForm({
     setLoading(false)
 
     if (error) {
-      toast({ title: 'שגיאה', description: 'אירעה שגיאה בשמירה', variant: 'destructive' })
+      toast({ title: 'שגיאה', description: error.message || 'אירעה שגיאה בשמירה', variant: 'destructive' })
     } else {
       toast({ title: editEntry ? 'עודכן בהצלחה' : 'נוסף בהצלחה', variant: 'success' })
       onSuccess(paymentMethodId || undefined)
@@ -226,20 +233,32 @@ export function EntryForm({
       <View style={styles.amountRow}>
         <Text style={styles.label}>סכום (₪)</Text>
         <View>
-          <TextInput
-            ref={amountRef}
-            style={[styles.input, styles.amountInput, readOnly && styles.inputDisabled]}
-            value={amount}
-            onChangeText={(text) => {
-              setAmount(text)
-              if (amountError) setAmountError('')
-            }}
-            keyboardType="decimal-pad"
-            placeholder="0"
-            placeholderTextColor="#9ca3af"
-            textAlign="left"
-            editable={!readOnly}
-          />
+          <View style={styles.amountInputRow}>
+            <TouchableOpacity
+              style={[styles.signBtn, isNegative && styles.signBtnNegative]}
+              onPress={() => setIsNegative(v => !v)}
+              disabled={readOnly || isInstallments}
+              hitSlop={{ top: 6, bottom: 6, left: 8, right: 8 }}
+            >
+              <Text style={[styles.signBtnText, isNegative && styles.signBtnTextNegative]}>
+                {isNegative ? '−' : '+'}
+              </Text>
+            </TouchableOpacity>
+            <TextInput
+              ref={amountRef}
+              style={[styles.input, styles.amountInput, readOnly && styles.inputDisabled, isNegative && styles.inputNegative]}
+              value={amount}
+              onChangeText={(text) => {
+                setAmount(text)
+                if (amountError) setAmountError('')
+              }}
+              keyboardType="decimal-pad"
+              placeholder="0"
+              placeholderTextColor="#9ca3af"
+              textAlign="left"
+              editable={!readOnly}
+            />
+          </View>
           {!!amountError && <Text style={styles.errorText}>{amountError}</Text>}
         </View>
       </View>
@@ -337,7 +356,10 @@ export function EntryForm({
               value={installments}
               onValueChange={(v) => {
                 setInstallments(v)
-                if (parseInt(v) >= 2) setIsRecurring(false)
+                if (parseInt(v) >= 2) {
+                  setIsRecurring(false)
+                  setIsNegative(false)
+                }
               }}
               options={installmentOptions}
             />
@@ -497,6 +519,38 @@ const styles = StyleSheet.create({
   readOnlyText: { fontSize: 13, color: '#386A20', fontWeight: '600' },
   buttons: { flexDirection: 'row', gap: 12, marginTop: 4 },
   btn: { flex: 1 },
+
+  amountInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  signBtn: {
+    width: 32,
+    height: 44,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    backgroundColor: '#fff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  signBtnNegative: {
+    borderColor: '#ef4444',
+    backgroundColor: '#fef2f2',
+  },
+  signBtnText: {
+    fontSize: 20,
+    fontWeight: '600',
+    color: '#6b7280',
+    lineHeight: 24,
+  },
+  signBtnTextNegative: {
+    color: '#ef4444',
+  },
+  inputNegative: {
+    color: '#ef4444',
+  },
 
   /* iOS date picker */
   iosOverlay: {

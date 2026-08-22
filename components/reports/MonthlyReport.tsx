@@ -1,12 +1,15 @@
 import { useEffect, useState } from 'react'
-import { View, Text, ScrollView, ActivityIndicator, StyleSheet } from 'react-native'
+import { View, Text, ScrollView, ActivityIndicator, StyleSheet, TouchableOpacity, Linking } from 'react-native'
 import { supabase } from '@/lib/supabase/client'
 import { useAuth } from '@/components/providers/AuthContext'
 import { useMonthContext } from '@/components/providers/MonthContext'
 import { MonthSelector } from '@/components/layout/MonthSelector'
 import { getExpensesForMonth, getIncomesForMonth } from '@/lib/supabase/queries'
 import { formatCurrency } from '@/lib/utils'
+import { useToast } from '@/components/ui/toast-context'
 import { Category } from '@/types'
+
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE ?? 'https://budget-mobile-rosy.vercel.app'
 
 type Row = {
   category: Category
@@ -19,6 +22,9 @@ export function MonthlyReport() {
   const { month, year } = useMonthContext()
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
+  const [exportingMonthly, setExportingMonthly] = useState(false)
+  const [exportingAnnual, setExportingAnnual] = useState(false)
+  const { toast } = useToast()
 
   useEffect(() => {
     if (profile?.household_id) loadData()
@@ -68,6 +74,34 @@ export function MonthlyReport() {
   const totalIncome = incomeRows.reduce((s, r) => s + r.actual, 0)
   const balance = totalIncome - totalExpenses
 
+  async function handleExport(type: 'monthly' | 'annual') {
+    const setExporting = type === 'monthly' ? setExportingMonthly : setExportingAnnual
+    setExporting(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('לא מחובר')
+
+      const res = await fetch(`${API_BASE}/api/save-report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ month, year, type }),
+      })
+
+      const json = await res.json()
+      if (!res.ok) throw new Error(json?.error ?? 'שגיאת שרת')
+
+      toast({ title: 'הדוח נשמר ב-Google Drive', variant: 'success' })
+      if (json.url) Linking.openURL(json.url)
+    } catch (err: any) {
+      toast({ title: 'שגיאה', description: err?.message ?? 'לא ניתן לייצא את הדוח', variant: 'destructive' })
+    } finally {
+      setExporting(false)
+    }
+  }
+
   function renderRow(row: Row) {
     const diff = row.actual - row.budget
     const isOver = row.budget > 0 && row.category.type === 'expense' && diff > 0
@@ -90,6 +124,26 @@ export function MonthlyReport() {
   return (
     <View style={styles.container}>
       <MonthSelector />
+      <View style={styles.exportBar}>
+        <TouchableOpacity
+          style={[styles.exportBtn, styles.exportBtnPrimary, (exportingMonthly || exportingAnnual) && styles.exportBtnDisabled]}
+          onPress={() => handleExport('monthly')}
+          disabled={exportingMonthly || exportingAnnual}
+        >
+          {exportingMonthly
+            ? <ActivityIndicator size="small" color="#fff" />
+            : <Text style={styles.exportBtnTextWhite}>ייצא דוח חודשי</Text>}
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.exportBtn, styles.exportBtnOutline, (exportingMonthly || exportingAnnual) && styles.exportBtnDisabled]}
+          onPress={() => handleExport('annual')}
+          disabled={exportingMonthly || exportingAnnual}
+        >
+          {exportingAnnual
+            ? <ActivityIndicator size="small" color="#386A20" />
+            : <Text style={styles.exportBtnTextGreen}>ייצא דוח שנתי {year}</Text>}
+        </TouchableOpacity>
+      </View>
       {loading ? (
         <ActivityIndicator style={{ marginTop: 40 }} />
       ) : (
@@ -142,6 +196,27 @@ export function MonthlyReport() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  exportBar: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  exportBtn: {
+    flex: 1,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  exportBtnPrimary: { backgroundColor: '#386A20' },
+  exportBtnOutline: { borderWidth: 1, borderColor: '#386A20', backgroundColor: '#fff' },
+  exportBtnDisabled: { opacity: 0.5 },
+  exportBtnTextWhite: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  exportBtnTextGreen: { fontSize: 13, fontWeight: '600', color: '#386A20' },
   content: { padding: 16, gap: 4 },
   cards: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   card: { flex: 1, borderRadius: 12, padding: 12, alignItems: 'center', gap: 4 },

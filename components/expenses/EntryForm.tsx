@@ -165,7 +165,7 @@ export function EntryForm({
 
     const finalAmount = isNegative ? -Math.abs(parseFloat(amount)) : parseFloat(amount)
 
-    const payload = {
+    const basePayload = {
       household_id: householdId,
       category_id: selectedCategoryId,
       payment_method_id: paymentMethodId || null,
@@ -178,10 +178,12 @@ export function EntryForm({
       is_recurring: isRecurring,
       recurring_start_month: isRecurring ? entryMonth : null,
       recurring_start_year: isRecurring ? entryYear : null,
-      recurring_end_month: null,
-      recurring_end_year: null,
       is_active: true,
     }
+
+    const payload = type === 'expense'
+      ? { ...basePayload, recurring_end_month: null, recurring_end_year: null }
+      : basePayload
 
     let error
     if (editEntry) {
@@ -193,7 +195,7 @@ export function EntryForm({
     setLoading(false)
 
     if (error) {
-      toast({ title: 'שגיאה', description: 'אירעה שגיאה בשמירה', variant: 'destructive' })
+      toast({ title: 'שגיאה', description: error.message || 'אירעה שגיאה בשמירה', variant: 'destructive' })
     } else {
       toast({ title: editEntry ? 'עודכן בהצלחה' : 'נוסף בהצלחה', variant: 'success' })
       onSuccess(paymentMethodId || undefined)

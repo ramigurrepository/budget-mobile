@@ -16,9 +16,10 @@ import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { ConfirmDeleteModal } from '@/components/ui/ConfirmDeleteModal'
 import { PaymentMethod } from '@/types'
+import { applyUserOrder } from '@/lib/utils'
 
 export function PaymentMethodsSettings() {
-  const { profile } = useAuth()
+  const { profile, refreshProfile } = useAuth()
   const { toast } = useToast()
   const [methods, setMethods] = useState<PaymentMethod[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,7 +41,7 @@ export function PaymentMethodsSettings() {
       .select('*')
       .eq('household_id', profile!.household_id)
       .order('sort_order')
-    setMethods(data ?? [])
+    setMethods(applyUserOrder(data ?? [], profile!.payment_method_order))
     setLoading(false)
   }
 
@@ -77,6 +78,14 @@ export function PaymentMethodsSettings() {
     else { toast({ title: 'נמחק', variant: 'success' }); loadMethods() }
   }
 
+  async function saveUserOrder(arr: PaymentMethod[]) {
+    await supabase
+      .from('user_profiles')
+      .update({ payment_method_order: arr.map((m) => m.id) })
+      .eq('id', profile!.id)
+    await refreshProfile()
+  }
+
   async function moveUp(index: number) {
     if (index === 0) return
     const arr = [...methods]
@@ -84,10 +93,7 @@ export function PaymentMethodsSettings() {
     arr[index] = arr[index - 1]
     arr[index - 1] = temp
     setMethods(arr)
-    await Promise.all([
-      supabase.from('payment_methods').update({ sort_order: index - 1 }).eq('id', arr[index - 1].id),
-      supabase.from('payment_methods').update({ sort_order: index }).eq('id', arr[index].id),
-    ])
+    await saveUserOrder(arr)
   }
 
   async function moveDown(index: number) {
@@ -97,10 +103,7 @@ export function PaymentMethodsSettings() {
     arr[index] = arr[index + 1]
     arr[index + 1] = temp
     setMethods(arr)
-    await Promise.all([
-      supabase.from('payment_methods').update({ sort_order: index }).eq('id', arr[index].id),
-      supabase.from('payment_methods').update({ sort_order: index + 1 }).eq('id', arr[index + 1].id),
-    ])
+    await saveUserOrder(arr)
   }
 
   const FormContent = (

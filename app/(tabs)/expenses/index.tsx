@@ -8,7 +8,7 @@ import { useMonthContext } from '@/components/providers/MonthContext'
 import { MonthSelector } from '@/components/layout/MonthSelector'
 import { CategoryCard } from '@/components/expenses/CategoryCard'
 import { Category, CategoryBudget, PaymentMethod, UserProfile } from '@/types'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, applyUserOrder } from '@/lib/utils'
 import { getExpensesForMonth } from '@/lib/supabase/queries'
 
 export default function ExpensesScreen() {
@@ -43,7 +43,7 @@ export default function ExpensesScreen() {
         if (a.report_type !== b.report_type) return a.report_type === 'tracking' ? 1 : -1
         return (a.sort_order ?? 0) - (b.sort_order ?? 0)
       }))
-      setPaymentMethods(pms ?? [])
+      setPaymentMethods(applyUserOrder(pms ?? [], profile?.payment_method_order))
       setMembers(mems ?? [])
 
       const budgetMap: Record<string, number> = {}

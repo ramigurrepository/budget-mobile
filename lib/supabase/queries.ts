@@ -1,6 +1,13 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { Expense, Income } from '@/types'
 
+function adjustRecurringDate(originalDate: string, month: number, year: number): string {
+  const day = parseInt(originalDate.split('-')[2], 10)
+  const lastDay = new Date(year, month, 0).getDate()
+  const clampedDay = Math.min(day, lastDay)
+  return `${year}-${String(month).padStart(2, '0')}-${String(clampedDay).padStart(2, '0')}`
+}
+
 export async function getExpensesForMonth(
   supabase: SupabaseClient,
   householdId: string,
@@ -60,7 +67,9 @@ export async function getExpensesForMonth(
     .eq('month', month)
 
   const exceptionSet = new Set((exceptions ?? []).map((ex) => ex.expense_id))
-  const filteredRecurring = recurring.filter((e) => !exceptionSet.has(e.id))
+  const filteredRecurring = recurring
+    .filter((e) => !exceptionSet.has(e.id))
+    .map((e) => ({ ...e, date: adjustRecurringDate(e.date, month, year) }))
 
   return [...(regular ?? []), ...filteredRecurring].sort((a, b) => b.date.localeCompare(a.date))
 }
@@ -120,7 +129,9 @@ export async function getIncomesForMonth(
     .eq('month', month)
 
   const exceptionSet = new Set((exceptions ?? []).map((ex) => ex.income_id))
-  const filteredRecurring = recurring.filter((e) => !exceptionSet.has(e.id))
+  const filteredRecurring = recurring
+    .filter((e) => !exceptionSet.has(e.id))
+    .map((e) => ({ ...e, date: adjustRecurringDate(e.date, month, year) }))
 
   return [...(regular ?? []), ...filteredRecurring].sort((a, b) => b.date.localeCompare(a.date))
 }

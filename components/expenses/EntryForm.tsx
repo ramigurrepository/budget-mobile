@@ -165,6 +165,15 @@ export function EntryForm({
 
     const finalAmount = isNegative ? -Math.abs(parseFloat(amount)) : parseFloat(amount)
 
+    // When editing an existing recurring entry, preserve the original start month/year
+    // (the date field is adjusted to the viewed month for display, but the pattern started earlier)
+    const startMonth = (editEntry?.is_recurring && editEntry.recurring_start_month)
+      ? editEntry.recurring_start_month
+      : entryMonth
+    const startYear = (editEntry?.is_recurring && editEntry.recurring_start_year)
+      ? editEntry.recurring_start_year
+      : entryYear
+
     const basePayload = {
       household_id: householdId,
       category_id: selectedCategoryId,
@@ -176,8 +185,8 @@ export function EntryForm({
       note: null,
       date,
       is_recurring: isRecurring,
-      recurring_start_month: isRecurring ? entryMonth : null,
-      recurring_start_year: isRecurring ? entryYear : null,
+      recurring_start_month: isRecurring ? startMonth : null,
+      recurring_start_year: isRecurring ? startYear : null,
       is_active: true,
     }
 

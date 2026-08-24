@@ -12,8 +12,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Disable IPv6 (force IPv4 for Supabase connection)
-        run: sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+      - name: Force IPv4 for Supabase hostname
+        run: |
+          IPV4=$(getent ahostsv4 db.yumfyzfarfxjaibadkxk.supabase.co | awk 'NR==1{print $1}')
+          echo "$IPV4 db.yumfyzfarfxjaibadkxk.supabase.co" | sudo tee -a /etc/hosts
 
       - name: Install PostgreSQL client
         run: sudo apt-get install -y postgresql-client

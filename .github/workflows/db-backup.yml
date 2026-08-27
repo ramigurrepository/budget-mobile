@@ -13,13 +13,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Force IPv4 for Supabase hostname
+      - name: Install PostgreSQL 17 client
         run: |
-          IPV4=$(getent ahostsv4 db.yumfyzfarfxjaibadkxk.supabase.co | awk 'NR==1{print $1}')
-          echo "$IPV4 db.yumfyzfarfxjaibadkxk.supabase.co" | sudo tee -a /etc/hosts
-
-      - name: Install PostgreSQL client
-        run: sudo apt-get install -y postgresql-client
+          sudo apt-get install -y curl ca-certificates
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
+          echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client-17
 
       - name: Dump schema
         env:

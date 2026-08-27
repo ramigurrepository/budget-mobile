@@ -5,6 +5,7 @@ on:
     branches: [master]
   schedule:
     - cron: '0 2 * * *'  # כל יום ב-02:00 UTC
+  workflow_dispatch:  # הרצה ידנית
 
 jobs:
   backup:

@@ -7,8 +7,9 @@ import {
   FlatList,
   StyleSheet,
   ViewStyle,
+  TextInput,
 } from 'react-native'
-import { ChevronDown, Check } from 'lucide-react-native'
+import { ChevronDown, Check, Search } from 'lucide-react-native'
 
 export type SelectOption = { label: string; value: string }
 
@@ -19,11 +20,22 @@ type Props = {
   placeholder?: string
   style?: ViewStyle
   disabled?: boolean
+  searchable?: boolean
 }
 
-export function Select({ value, onValueChange, options, placeholder = 'בחר...', style, disabled }: Props) {
+export function Select({ value, onValueChange, options, placeholder = 'בחר...', style, disabled, searchable }: Props) {
   const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState('')
   const selected = options.find((o) => o.value === value)
+
+  const visibleOptions = searchable && search.trim()
+    ? options.filter((o) => o.label.toLowerCase().includes(search.trim().toLowerCase()))
+    : options
+
+  function handleClose() {
+    setOpen(false)
+    setSearch('')
+  }
 
   return (
     <>
@@ -38,16 +50,31 @@ export function Select({ value, onValueChange, options, placeholder = 'בחר...
         <ChevronDown size={16} color="#6b7280" />
       </TouchableOpacity>
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={() => setOpen(false)}>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={handleClose}>
+        <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={handleClose}>
           <View style={styles.sheet}>
+            {searchable && (
+              <View style={styles.searchRow}>
+                <Search size={16} color="#6b7280" />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="חפש קטגוריה..."
+                  placeholderTextColor="#9ca3af"
+                  value={search}
+                  onChangeText={setSearch}
+                  textAlign="right"
+                  autoFocus
+                />
+              </View>
+            )}
             <FlatList
-              data={options}
+              data={visibleOptions}
               keyExtractor={(item) => item.value}
+              keyboardShouldPersistTaps="handled"
               renderItem={({ item }) => (
                 <TouchableOpacity
                   style={styles.option}
-                  onPress={() => { onValueChange(item.value); setOpen(false) }}
+                  onPress={() => { onValueChange(item.value); handleClose() }}
                 >
                   <Text style={[styles.optionText, item.value === value && styles.optionSelected]}>
                     {item.label}
@@ -85,9 +112,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    maxHeight: 400,
+    maxHeight: 480,
     paddingBottom: 30,
     paddingTop: 8,
+  },
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+    gap: 8,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#1f2937',
+    paddingVertical: 4,
+    fontFamily: 'Heebo_400Regular',
   },
   option: {
     flexDirection: 'row',

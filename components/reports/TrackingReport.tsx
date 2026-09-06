@@ -48,11 +48,13 @@ export function TrackingReport() {
       .from('categories')
       .select('*')
       .eq('household_id', profile!.household_id)
-      .eq('report_type', 'tracking')
+      .eq('type', 'expense')
       .order('sort_order')
     const cats = data ?? []
     setCategories(cats)
-    if (cats.length > 0) setSelectedCategoryId(cats[0].id)
+    const firstTracking = cats.find((c) => c.report_type === 'tracking')
+    if (firstTracking) setSelectedCategoryId(firstTracking.id)
+    else if (cats.length > 0) setSelectedCategoryId(cats[0].id)
   }
 
   async function loadData() {
@@ -98,6 +100,7 @@ export function TrackingReport() {
           options={catOptions}
           placeholder="בחר קטגוריה"
           style={styles.catSelect}
+          searchable
         />
       </View>
 

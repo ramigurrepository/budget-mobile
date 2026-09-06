@@ -1,6 +1,6 @@
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { ChevronRight, BarChart2, Target, TrendingUp, FileText } from 'lucide-react-native'
+import { ChevronLeft, BarChart2, Target, TrendingUp, FileText } from 'lucide-react-native'
 import { useRouter } from 'expo-router'
 
 const REPORTS = [
@@ -44,11 +44,11 @@ export default function ReportsScreen() {
               onPress={() => router.push(`/reports/${report.key}` as any)}
               activeOpacity={0.7}
             >
-              <ChevronRight size={20} color="#9ca3af" />
-              <Text style={styles.cardLabel}>{report.label}</Text>
               <View style={styles.iconWrap}>
                 <Icon size={22} color="#386A20" />
               </View>
+              <Text style={styles.cardLabel}>{report.label}</Text>
+              <ChevronLeft size={20} color="#9ca3af" />
             </TouchableOpacity>
           )
         })}

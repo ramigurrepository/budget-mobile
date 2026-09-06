@@ -58,7 +58,7 @@ export default function ReportsScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7FBEF' },
+  safe: { flex: 1, backgroundColor: '#F7FBEF', direction: 'rtl' },
   header: {
     paddingHorizontal: 20,
     paddingVertical: 16,

@@ -21,7 +21,7 @@ export default function AnnualReportScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7FBEF' },
+  safe: { flex: 1, backgroundColor: '#F7FBEF', direction: 'rtl' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

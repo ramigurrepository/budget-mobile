@@ -48,7 +48,7 @@ export function AnnualReport() {
             getIncomesForMonth(supabase, hid, m, year),
           ])
           return {
-            expense: expenses.reduce((s, e) => s + e.amount, 0),
+            expense: expenses.filter(e => e.categories?.report_type !== 'tracking').reduce((s, e) => s + e.amount, 0),
             income: incomes.reduce((s, e) => s + e.amount, 0),
           }
         })

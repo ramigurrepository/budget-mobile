@@ -50,7 +50,7 @@ export default function ExpensesScreen() {
       ;(bgets ?? []).forEach((b: CategoryBudget) => { budgetMap[b.category_id] = b.amount })
       setBudgets(budgetMap)
 
-      setTotalActual(expenses.reduce((s, e) => s + e.amount, 0))
+      setTotalActual(expenses.filter(e => e.categories?.report_type !== 'tracking').reduce((s, e) => s + e.amount, 0))
     } finally {
       setLoading(false)
     }

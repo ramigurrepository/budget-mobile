@@ -1,63 +1,108 @@
-import { useState } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
-import { MonthlyReport } from '@/components/reports/MonthlyReport'
-import { TrackingReport } from '@/components/reports/TrackingReport'
-import { AnnualReport } from '@/components/reports/AnnualReport'
-import { ExpensesExportReport } from '@/components/reports/ExpensesExportReport'
+import { ChevronRight, BarChart2, Target, TrendingUp, FileText } from 'lucide-react-native'
+import { useRouter } from 'expo-router'
 
-type Tab = 'monthly' | 'tracking' | 'annual' | 'export'
+const REPORTS = [
+  {
+    key: 'monthly',
+    label: 'דוח חודשי מרכז לפי קטגוריות',
+    icon: BarChart2,
+  },
+  {
+    key: 'tracking',
+    label: 'דוח קטגוריות שהן למעקב הוצאות בלבד',
+    icon: Target,
+  },
+  {
+    key: 'annual',
+    label: 'דוח סכימה לפי חודשים',
+    icon: TrendingUp,
+  },
+  {
+    key: 'export',
+    label: 'דוח הוצאות מפורט חודשי',
+    icon: FileText,
+  },
+]
 
 export default function ReportsScreen() {
-  const [activeTab, setActiveTab] = useState<Tab>('monthly')
-
-  const tabs: { key: Tab; label: string }[] = [
-    { key: 'monthly', label: 'חודשי' },
-    { key: 'tracking', label: 'מעקב' },
-    { key: 'annual', label: 'שנתי' },
-    { key: 'export', label: 'ייצוא' },
-  ]
+  const router = useRouter()
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.tabBar}>
-        {tabs.map((tab) => (
-          <TouchableOpacity
-            key={tab.key}
-            style={[styles.tab, activeTab === tab.key && styles.tabActive]}
-            onPress={() => setActiveTab(tab.key)}
-          >
-            <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>דוחות</Text>
       </View>
-
-      {activeTab === 'monthly' && <MonthlyReport />}
-      {activeTab === 'tracking' && <TrackingReport />}
-      {activeTab === 'annual' && <AnnualReport />}
-      {activeTab === 'export' && <ExpensesExportReport />}
+      <View style={styles.list}>
+        {REPORTS.map((report, index) => {
+          const Icon = report.icon
+          return (
+            <TouchableOpacity
+              key={report.key}
+              style={[styles.card, index < REPORTS.length - 1 && styles.cardBorder]}
+              onPress={() => router.push(`/reports/${report.key}` as any)}
+              activeOpacity={0.7}
+            >
+              <ChevronRight size={20} color="#9ca3af" />
+              <Text style={styles.cardLabel}>{report.label}</Text>
+              <View style={styles.iconWrap}>
+                <Icon size={22} color="#386A20" />
+              </View>
+            </TouchableOpacity>
+          )
+        })}
+      </View>
     </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#f9fafb' },
-  tabBar: {
-    flexDirection: 'row',
+  safe: { flex: 1, backgroundColor: '#F7FBEF' },
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: '#F7FBEF',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#111827',
+    textAlign: 'right',
+  },
+  list: {
+    marginHorizontal: 16,
     backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e5e7eb',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#E2E7D7',
   },
-  tab: {
-    flex: 1,
-    paddingVertical: 12,
+  card: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    backgroundColor: '#fff',
+    gap: 12,
   },
-  tabActive: { borderBottomColor: '#386A20' },
-  tabText: { fontSize: 14, color: '#6b7280', fontWeight: '500' },
-  tabTextActive: { color: '#386A20', fontWeight: '600' },
+  cardBorder: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#EEF1E4',
+  },
+  cardLabel: {
+    flex: 1,
+    fontSize: 15,
+    color: '#111827',
+    fontWeight: '500',
+    textAlign: 'right',
+  },
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#EEF1E4',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 })

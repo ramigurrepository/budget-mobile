@@ -8,6 +8,8 @@ import {
   StyleSheet,
   ViewStyle,
   TextInput,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native'
 import { ChevronDown, Check, Search } from 'lucide-react-native'
 
@@ -51,6 +53,7 @@ export function Select({ value, onValueChange, options, placeholder = 'בחר...
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={handleClose}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={handleClose}>
           <View style={styles.sheet}>
             {searchable && (
@@ -85,6 +88,7 @@ export function Select({ value, onValueChange, options, placeholder = 'בחר...
             />
           </View>
         </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   )

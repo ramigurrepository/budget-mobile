@@ -210,23 +210,25 @@ export function AnnualReport() {
           <Text style={[styles.chartTitle, { marginTop: 24 }]}>פירוט חודשי</Text>
           <View style={styles.tableHeader}>
             <Text style={[styles.th, { flex: 1 }]}>חודש</Text>
-            <Text style={styles.th}>הוצאות</Text>
             <Text style={styles.th}>הכנסות</Text>
+            <Text style={styles.th}>הוצאות</Text>
             <Text style={styles.th}>מאזן</Text>
           </View>
           {displayLabels.map((label, i) => {
             const balance = displayIncome[i] - displayExpense[i]
+            const hasData = displayExpense[i] > 0 || displayIncome[i] > 0
+            const balanceColor = !hasData ? '#000' : balance > 0 ? '#386A20' : balance < 0 ? '#ef4444' : '#000'
             return (
               <View key={i} style={styles.tableRow}>
                 <Text style={[styles.td, { flex: 1 }]}>{label}</Text>
-                <Text style={[styles.td, { color: '#ef4444' }]}>
-                  {displayExpense[i] > 0 ? formatCurrency(displayExpense[i]) : '—'}
-                </Text>
-                <Text style={[styles.td, { color: '#22c55e' }]}>
+                <Text style={styles.td}>
                   {displayIncome[i] > 0 ? formatCurrency(displayIncome[i]) : '—'}
                 </Text>
-                <Text style={[styles.td, { color: balance >= 0 ? '#22c55e' : '#ef4444' }]}>
-                  {displayExpense[i] > 0 || displayIncome[i] > 0 ? formatCurrency(balance) : '—'}
+                <Text style={styles.td}>
+                  {displayExpense[i] > 0 ? formatCurrency(displayExpense[i]) : '—'}
+                </Text>
+                <Text style={[styles.td, { color: balanceColor }]}>
+                  {hasData ? formatCurrency(balance) : '—'}
                 </Text>
               </View>
             )

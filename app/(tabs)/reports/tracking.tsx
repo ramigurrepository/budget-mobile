@@ -21,7 +21,7 @@ export default function TrackingReportScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F7FBEF', direction: 'rtl' },
+  safe: { flex: 1, backgroundColor: '#F7FBEF' },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

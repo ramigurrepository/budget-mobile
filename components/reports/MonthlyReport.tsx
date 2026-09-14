@@ -103,20 +103,23 @@ export function MonthlyReport() {
   }
 
   function renderRow(row: Row) {
-    const diff = row.actual - row.budget
-    const isOver = row.budget > 0 && row.category.type === 'expense' && diff > 0
+    const diff = row.budget - row.actual
+    let diffColor = '#000'
+    if (row.budget > 0) {
+      if (diff > 0) diffColor = '#386A20'
+      else if (diff < 0) diffColor = '#ef4444'
+    }
+    const diffText = row.budget > 0
+      ? (diff > 0 ? `+${formatCurrency(diff)}` : formatCurrency(diff))
+      : '—'
     return (
       <View key={row.category.id} style={styles.tableRow}>
         <Text style={[styles.cell, { flex: 1.5, textAlign: 'right' }]} numberOfLines={1}>
           {row.category.name}
         </Text>
         <Text style={styles.cell}>{row.budget > 0 ? formatCurrency(row.budget) : '—'}</Text>
-        <Text style={[styles.cell, row.category.type === 'income' ? styles.incomeText : styles.expenseText]}>
-          {formatCurrency(row.actual)}
-        </Text>
-        <Text style={[styles.cell, isOver ? styles.overText : styles.normalText]}>
-          {row.budget > 0 ? (isOver ? `+${formatCurrency(diff)}` : formatCurrency(diff)) : '—'}
-        </Text>
+        <Text style={styles.cell}>{formatCurrency(row.actual)}</Text>
+        <Text style={[styles.cell, { color: diffColor }]}>{diffText}</Text>
       </View>
     )
   }
@@ -152,15 +155,15 @@ export function MonthlyReport() {
           <View style={styles.cards}>
             <View style={[styles.card, styles.cardExpense]}>
               <Text style={styles.cardLabel}>הוצאות</Text>
-              <Text style={[styles.cardAmount, { color: '#ef4444' }]}>{formatCurrency(totalExpenses)}</Text>
+              <Text style={styles.cardAmount}>{formatCurrency(totalExpenses)}</Text>
             </View>
             <View style={[styles.card, styles.cardIncome]}>
               <Text style={styles.cardLabel}>הכנסות</Text>
-              <Text style={[styles.cardAmount, { color: '#22c55e' }]}>{formatCurrency(totalIncome)}</Text>
+              <Text style={styles.cardAmount}>{formatCurrency(totalIncome)}</Text>
             </View>
-            <View style={[styles.card, balance >= 0 ? styles.cardPositive : styles.cardNegative]}>
+            <View style={[styles.card, balance > 0 ? styles.cardPositive : balance < 0 ? styles.cardNegative : styles.cardExpense]}>
               <Text style={styles.cardLabel}>מאזן</Text>
-              <Text style={[styles.cardAmount, { color: balance >= 0 ? '#22c55e' : '#ef4444' }]}>
+              <Text style={[styles.cardAmount, { color: balance > 0 ? '#386A20' : balance < 0 ? '#ef4444' : '#000' }]}>
                 {formatCurrency(balance)}
               </Text>
             </View>
